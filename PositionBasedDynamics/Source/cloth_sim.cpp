@@ -302,25 +302,29 @@ void ClothSim::generate_edge_list()
 
 void ClothSim::generate_internal_constraints()
 {// TODO: generate all internal constraints in this function.
-    // generating fixed point constraints.
-    unsigned int i, k, index;
-    for(i = 0; i < m_dimx; ++i)
-    {
-        for(k = 0; k < m_dimz; ++k)
-        {
-            index = m_dimz * i + k;
-            // TODO: add FixedPointConstraint to internal constraint.
-            ;
-        }
-    }
-    // generate stretch constraints. assign a stretch constraint for each edge.
-    glm::vec3 p1, p2;
-    // TODO: assign an initial value for stretch stiffness.
+	// generating fixed point constraints.
+	unsigned int i, k, index;
+	for(i = 0; i < m_dimx; ++i)
+	{
+		for(k = 0; k < m_dimz; ++k)
+		{
+			index = m_dimz * i + k;
+			// TODO: add FixedPointConstraint to internal constraint.
+			Constraint* f = new FixedPointConstraint(&m_vertices, index, m_vertices.pos(index));
+			m_constraints_int.push_back(f);
+		}
+	}
+	// generate stretch constraints. assign a stretch constraint for each edge.
+	glm::vec3 p1, p2;
+	// TODO: assign an initial value for stretch stiffness.
     float stretch_stiff = 1.0f;
     float s_stiff = 1.0f - std::pow((1 - stretch_stiff), 1.0f / m_solver_iterations);
     for(std::vector<Edge>::iterator e = m_edge_list.begin(); e != m_edge_list.end(); ++e)
     {// TODO: add stretch constraint here.
-        ;
+		unsigned int p1_ = e->m_v1;
+		unsigned int p2_ = e->m_v2;
+		Constraint* s = new StretchConstraint(&m_vertices, s_stiff, p1_, p2_, glm::length(p1-p2));
+		m_constraints_int.push_back(s);
     }
 
     // generate the bending constraints.
@@ -349,9 +353,14 @@ void ClothSim::generate_internal_constraints()
         while((*tri == id1)||(*tri == id2))
             tri++;
         id4 = *tri;
-
+		
         // TODO: add bend constraint here. hacky bend for basic requirement. real bend constraint for extra credit.
+		StretchConstraint* stretchConstraint = new StretchConstraint(&m_vertices, b_stiff, id3, id4,  glm::length(m_vertices.pos(id3)-m_vertices.pos(id4)));  //20140301
+		m_constraints_int.push_back(stretchConstraint);
 
+		//phi = 0;
+		//Constraint* b = new BendConstraint(&m_vertices, b_stiff, id1, id2, id3, id4, phi);
+		//m_constraints_int.push_back(b);
     }
 }
 
@@ -396,14 +405,56 @@ void ClothSim::apply_external_force(const glm::vec3& force, float dt)
     unsigned int size = m_vertices.size();
     for(unsigned int i = 0; i < size; ++i)
     {// TODO: apply force to velocity of all vertices.
-        ;
+		m_vertices.vel(i) = m_vertices.vel(i) + dt*m_vertices.inv_mass(i)*force;
     }
 }
 
 void ClothSim::damp_velocity(float k_damp)
 {
     // TODO: apply damping according to chapter 3.5 in original paper.
-    ;
+	unsigned int i, k, index;
+	glm::vec3 sum_xm = glm::vec3(0.f);
+	float sum_mass = 0;
+	glm::vec3 sum_vm = glm::vec3(0.f);
+	for(i = 0; i < m_dimx; ++i) {
+		for(k = 0; k < m_dimz; ++k){
+			index = m_dimz * i + k;
+			sum_xm = sum_xm + m_vertices.pos(index)/m_vertices.inv_mass(index);
+			sum_mass = sum_mass + 1.0f/m_vertices.inv_mass(index);
+			sum_vm = sum_vm + m_vertices.vel(index)/m_vertices.inv_mass(index);
+		}
+	}
+
+	glm::vec3 xcm = sum_xm / sum_mass; // (1)
+	glm::vec3 vcm = sum_vm / sum_mass; // (2)
+	glm::vec3 L = glm::vec3(0.f); // (3)
+	glm::mat3 I = glm::mat3(0.f); // (4)
+	for(i = 0; i < m_dimx; ++i) {
+		for(k = 0; k < m_dimz; ++k){
+			index = m_dimz * i + k;
+			glm::vec3 ri = m_vertices.pos(index) - xcm;
+			glm::vec3 mivi = m_vertices.vel(index)/m_vertices.inv_mass(index);
+			L = L + glm::cross(ri, mivi);
+			glm::vec3 v1 = glm::vec3(0.0f, ri[2], -ri[1]);
+			glm::vec3 v2 = glm::vec3(-ri[2], 0.0f, ri[0]);
+			glm::vec3 v3 = glm::vec3(ri[1], -ri[0], 0.0f);
+			glm::mat3 r_tilda = glm::mat3(v1,v2,v3);
+			I = I + r_tilda * glm::transpose(r_tilda) / m_vertices.inv_mass(index); 
+		}
+	}
+	glm::vec3 w = glm::inverse(I) * L; // (5)
+	for(i = 0; i < m_dimx; ++i) {
+		for(k = 0; k < m_dimz; ++k){
+			index = m_dimz * i + k;
+			glm::vec3 ri = m_vertices.pos(index) - xcm;
+			glm::vec3 vi = m_vertices.vel(index);
+			glm::vec3 delta_vi = vcm + glm::cross(w, ri) - vi; // (7)
+			float k_damping = 0.9;
+			m_vertices.vel(index) = vi + k_damping * delta_vi; // (8)
+		}
+	}
+
+
 }
 
 void ClothSim::compute_predicted_position(float dt)
@@ -412,7 +463,7 @@ void ClothSim::compute_predicted_position(float dt)
     for(unsigned int i = 0; i < size; ++i)
     {// TODO: compute predicted position for all vertices.
         // this is just an example line and assign a initial value so that the program won't be too slow.
-        m_vertices.predicted_pos(i) = m_vertices.pos(i);
+        m_vertices.predicted_pos(i) = m_vertices.pos(i) + dt*m_vertices.vel(i);
     }
 }
 
@@ -474,22 +525,26 @@ void ClothSim::resolve_constriants()
 }
 
 void ClothSim::integration(float dt)
-{// integration the position based on optimized prediction, and determine velocity based on position.
+{// integration the position based on optimized prediction, and determine velocity based on position. (12-15)
     unsigned int size = m_vertices.size();
     float inv_dt = 1.0f / dt;
     for(unsigned int i = 0; i < size; ++i)
     {// TODO: compute position and velocity for all vertices based on predicted position.
-        ;
+        m_vertices.vel(i) = (m_vertices.predicted_pos(i)-m_vertices.pos(i))/dt;
+		m_vertices.pos(i) = m_vertices.predicted_pos(i);
     }
 }
 
 void ClothSim::update_velocity(float friction, float restitution)
-{// update velocity based on collision restitution or friction.
+{// update velocity based on collision restitution or friction. (16)
     glm::vec3 normal, vn, vt;
     float norm_fraction;
     for(std::vector<CollisionConstraint>::iterator s = m_constraints_ext.begin(); s != m_constraints_ext.end(); ++s)
     {// TODO: modify the velocity according to collisions
-        ;
+		glm::vec3 v = m_vertices.vel(s->index());
+		vn = glm::dot(v, s->normal()) * s->normal();
+		vt = v - vn;
+		m_vertices.vel(s->index()) = friction*vt + restitution*vn; 
     }
 
     for(std::vector<SelfCollisionConstraint>::iterator s = m_self_collision.begin(); s != m_self_collision.end(); ++s)
