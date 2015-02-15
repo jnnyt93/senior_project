@@ -72,11 +72,11 @@ bool FixedPointConstraint::project_constraint()
 {// TODO: implement the project function for FixedPointConstraint.
     //return true if current position is OK. return false if the position is being projected.
     m_vertices->lock_pos(m_p0);
-    float value = 0.0f;
+    float value = glm::length(m_vertices->pos(m_p0)-m_fixd_point);
     if(value < EPSILON)
         return true;
 
-    glm::vec3 dp0;
+    glm::vec3 dp0 = m_fixd_point - m_vertices->predicted_pos(m_p0);
     m_vertices->predicted_pos(m_p0) += dp0 * m_stiffness;
     return false;
 }
@@ -118,11 +118,20 @@ bool StretchConstraint::project_constraint()
     p1 = m_vertices->predicted_pos(m_p1);
     p2 = m_vertices->predicted_pos(m_p2);
 
-    float length = 0.0f;
+    float length = glm::length(p1-p2);
+
     if(fabs(length - m_rest_length) < EPSILON)
         return true;
 
-    glm::vec3 dp1, dp2;
+	float w1 = m_vertices->inv_mass(m_p1);
+	float w2 = m_vertices->inv_mass(m_p2);
+
+	float d = m_rest_length;
+	float s = (length - d) / (w1 + w2);
+	glm::vec3 mag = (p1-p2)/length;
+    glm::vec3 dp1 = -1*w1 * s * mag;
+	glm::vec3 dp2 = w2 * s * mag;
+
     m_vertices->predicted_pos(m_p1) += dp1 * m_stiffness;
     m_vertices->predicted_pos(m_p2) += dp2 * m_stiffness;
 
@@ -159,13 +168,35 @@ BendConstraint::~BendConstraint()
 
 bool BendConstraint::project_constraint()
 {// TODO: implement the project function for BendConstraint.
-    //return true if current position is OK. return false if the position is being projected.
+    //return true if current position is OK. return false if the position is being projected
+	glm::vec3 dp1, dp2, dp3, dp4, q1, q2, q3, q4;
     glm::vec3 p1 = m_vertices->predicted_pos(m_p1),
               p2 = m_vertices->predicted_pos(m_p2),
               p3 = m_vertices->predicted_pos(m_p3),
               p4 = m_vertices->predicted_pos(m_p4);
+	glm::vec3 n1 = glm::cross(p2-p1, p3-p1);
+	glm::vec3 n2 = glm::cross(p2-p1, p4-p1);
+	float d = glm::dot(n1, n2);
+	float w1 = m_vertices->inv_mass(m_p1);
+	float w2 = m_vertices->inv_mass(m_p2);
+	float w3 = m_vertices->inv_mass(m_p3);
+	float w4 = m_vertices->inv_mass(m_p4);
+	q3 = (glm::cross(p2, n2) + glm::cross(n1, p2)*d) / glm::length(glm::cross(p2, p3));
+	q4 = (glm::cross(p2, n1) + glm::cross(n2, p2)*d) / glm::length(glm::cross(p2, p4));
+	q2 = -1.f*(glm::cross(p3, n2) + glm::cross(n1, p3)*d) / glm::length(glm::cross(p2, p3));
+	q2 = q2 - (glm::cross(p4, n1) + glm::cross(n2, p4)*d) / glm::length(glm::cross(p2, p4));
+	q1 = -1.f * q2 - q3 - q4;
+    
+	float sum = w1*glm::length(q1*q1) +
+		w2*glm::length(q1*q2) +
+		w3*glm::length(q3*q3) +
+		w4*glm::length(q4*q4);
 
-    glm::vec3 dp1, dp2, dp3, dp4;
+	dp1 = -1*w1*glm::sqrt(1 - d*d) * (glm::acos(d) - m_phi) * q1 / sum;
+	dp2 = -1*w2*glm::sqrt(1 - d*d) * (glm::acos(d) - m_phi) * q2 / sum;
+	dp3 = -1*w3*glm::sqrt(1 - d*d) * (glm::acos(d) - m_phi) * q3 / sum;
+	dp4 = -1*w4*glm::sqrt(1 - d*d) * (glm::acos(d) - m_phi) * q4 / sum;
+
     m_vertices->predicted_pos(m_p1) += dp1 * m_stiffness;
     m_vertices->predicted_pos(m_p2) += dp2 * m_stiffness;
     m_vertices->predicted_pos(m_p3) += dp3 * m_stiffness;
@@ -207,12 +238,13 @@ CollisionConstraint::~CollisionConstraint()
 bool CollisionConstraint::project_constraint()
 {// TODO: implement the project function for CollisionConstraint.
     //return true if current position is OK. return false if the position is being projected.
+
     glm::vec3 p0 = m_vertices->predicted_pos(m_p0);
-    float value = 0.0f;
+    float value = glm::dot(p0-m_ref_point, m_normal);
     if(value > 0.0f)
         return true;
 
-    glm::vec3 dp0;
+    glm::vec3 dp0 = m_ref_point - p0;
     m_vertices->predicted_pos(m_p0) += dp0 * m_stiffness;
 
     return false;

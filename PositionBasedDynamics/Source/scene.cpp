@@ -305,56 +305,55 @@ void Scene::Sphere::draw(const VBO& vbos) const
 bool Scene::Sphere::line_intersection(const glm::vec3& p1, const glm::vec3& p2, float threshold, glm::vec3& intersect, glm::vec3& normal) const
 {// TODO: implement line-sphere intersection. you can refer to line-plane intersection.
 
-	//float v1, v2;// v1 v2 are distance to sphere for p1 and p2.
-	//glm::vec3 center = m_center;
-	//float radius = m_radius;
+	 float v1, v2;// v1 v2 are distance to sphere for p1 and p2.
+    glm::vec3 center = m_center;
+	float radius = m_radius;
 
-	//v1 = glm::length(p1 - center) - radius;
-	//v2 = glm::length(p2 - center) - radius;
-
-	//if(v2 < threshold)
-	//{
-	//	if(v1 >= threshold)
-	//	{// continuous collision handling.
-	//		float r = radius + threshold;
-	//		glm::vec3 l = glm::normalize(p2-p1);
-	//		glm::vec3 OMinusC = p1-center;
-	//		float loc = glm::dot(l, OMinusC);
-	//		float d = -loc - glm::sqrt(loc*loc - glm::dot(OMinusC, OMinusC) + r*r);
-	//		intersect = l*d + p1;
-	//		normal = glm::normalize(intersect-center);
-	//	}
-	//	else
-	//	{// static collision handling.
-	//		normal = glm::normalize(p2-center);            
-	//		intersect = p2 - (v2-threshold)*normal;
-	//	}
-	//	return true;
-	//}
-	//else
-	//	return false;
-
-
-    float v1, v2;// v1 v2 are distance to sphere for p1 and p2.
-	v1 = glm::length(p1 - m_center) - m_radius;
-    v2 = glm::length(p2 - m_center) - m_radius;
+	v1 = glm::length(p1 - center) - radius;
+    v2 = glm::length(p2 - center) - radius;
 
     if(v2 < threshold)
     {
         if(v1 >= threshold)
         {// continuous collision handling.
-            intersect = glm::vec3(0.0f);
-            normal = glm::vec3(0.0f);
+			float r = radius + threshold;
+			glm::vec3 l = glm::normalize(p2-p1);
+			glm::vec3 OMinusC = p1-center;
+			float loc = glm::dot(l, OMinusC);
+			float d = -loc - glm::sqrt(loc*loc - glm::dot(OMinusC, OMinusC) + r*r);
+			intersect = l*d + p1;
+            normal = glm::normalize(intersect-center);
         }
         else
         {// static collision handling.
-            intersect = glm::vec3(0.0f);
-            normal = glm::vec3(0.0f);
+			normal = glm::normalize(p2-center);            
+			intersect = p2 - (v2-threshold)*normal;
         }
         return true;
     }
     else
         return false;
+
+ //   float v1, v2;// v1 v2 are distance to sphere for p1 and p2.
+	//v1 = glm::length(p1 - m_center) - m_radius;
+ //   v2 = glm::length(p2 - m_center) - m_radius;
+
+ //   if(v2 < threshold)
+ //   {
+ //       if(v1 >= threshold)
+ //       {// continuous collision handling.
+ //           intersect = glm::vec3(0.0f);
+ //           normal = glm::vec3(0.0f);
+ //       }
+ //       else
+ //       {// static collision handling.
+ //           intersect = glm::vec3(0.0f);
+ //           normal = glm::vec3(0.0f);
+ //       }
+ //       return true;
+ //   }
+ //   else
+ //       return false;
 }
 
 //----------Scene Visitor Class----------//

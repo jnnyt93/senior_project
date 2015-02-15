@@ -310,8 +310,10 @@ void ClothSim::generate_internal_constraints()
 		{
 			index = m_dimz * i + k;
 			// TODO: add FixedPointConstraint to internal constraint.
-			Constraint* f = new FixedPointConstraint(&m_vertices, index, m_vertices.pos(index));
-			m_constraints_int.push_back(f);
+			//if (k==0) {
+			//	Constraint* f = new FixedPointConstraint(&m_vertices, index, m_vertices.pos(index));
+			//	m_constraints_int.push_back(f);
+			//}
 		}
 	}
 	// generate stretch constraints. assign a stretch constraint for each edge.
@@ -323,6 +325,8 @@ void ClothSim::generate_internal_constraints()
     {// TODO: add stretch constraint here.
 		unsigned int p1_ = e->m_v1;
 		unsigned int p2_ = e->m_v2;
+		p1 = m_vertices.pos(p1_);
+		p2 = m_vertices.pos(p2_);
 		Constraint* s = new StretchConstraint(&m_vertices, s_stiff, p1_, p2_, glm::length(p1-p2));
 		m_constraints_int.push_back(s);
     }
@@ -354,9 +358,7 @@ void ClothSim::generate_internal_constraints()
             tri++;
         id4 = *tri;
 		
-        // TODO: add bend constraint here. hacky bend for basic requirement. real bend constraint for extra credit.
-		StretchConstraint* stretchConstraint = new StretchConstraint(&m_vertices, b_stiff, id3, id4,  glm::length(m_vertices.pos(id3)-m_vertices.pos(id4)));  //20140301
-		m_constraints_int.push_back(stretchConstraint);
+        // TODO: add bend constraint here. hacky bend for basic requirement. real bend constraint for extra credit
 
 		//phi = 0;
 		//Constraint* b = new BendConstraint(&m_vertices, b_stiff, id1, id2, id3, id4, phi);
@@ -449,12 +451,9 @@ void ClothSim::damp_velocity(float k_damp)
 			glm::vec3 ri = m_vertices.pos(index) - xcm;
 			glm::vec3 vi = m_vertices.vel(index);
 			glm::vec3 delta_vi = vcm + glm::cross(w, ri) - vi; // (7)
-			float k_damping = 0.9;
-			m_vertices.vel(index) = vi + k_damping * delta_vi; // (8)
+			m_vertices.vel(index) = vi + k_damp * delta_vi; // (8)
 		}
 	}
-
-
 }
 
 void ClothSim::compute_predicted_position(float dt)
