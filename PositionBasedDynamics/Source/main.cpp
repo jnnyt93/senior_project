@@ -93,9 +93,9 @@ void initShader(const char* vert_path, const char* frag_path)
         printLinkInfoLog(m_shaderprog_handle);
 
     // TODO: customize this part if you want to modify the glsl shader.
-    // query uniform locations from openGL.
-    m_uniform_location[0] = glGetUniformLocation(m_shaderprog_handle, "u_modelviewMatrix");
-    m_uniform_location[1] = glGetUniformLocation(m_shaderprog_handle, "u_projMatrix");
+	// query uniform locations from openGL.
+	m_uniform_location[0] = glGetUniformLocation(m_shaderprog_handle, "u_modelviewMatrix");
+	m_uniform_location[1] = glGetUniformLocation(m_shaderprog_handle, "u_projMatrix");
 
     // activate the shader program.
     glUseProgram(m_shaderprog_handle);

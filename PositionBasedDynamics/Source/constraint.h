@@ -4,6 +4,7 @@
 #include "math_headers.h"
 #include "particlelist.h"
 #include <vector>
+#include <math.h>
 
 class Constraint
 {
@@ -23,6 +24,24 @@ protected:
     ParticleList *m_vertices;
     // stiffness decide how much the vertex would move towards the constrained position.
     float m_stiffness;
+};
+
+class DensityConstraint : public Constraint
+{
+public:
+    DensityConstraint();
+    DensityConstraint(ParticleList *verts, std::vector<std::vector<unsigned int>>* neighbors, std::vector<float> lambdas, unsigned int p0);
+    DensityConstraint(const DensityConstraint& other);
+    virtual ~DensityConstraint();
+
+	virtual bool project_constraint();
+protected:
+    // cardinality for stretch constraint is 1.
+	unsigned int m_p0;
+	float h; // smoothing radius
+	float rest_density;
+	std::vector<std::vector<unsigned int>>* m_neighbors;
+	std::vector<float> m_lambdas;
 };
 
 class FixedPointConstraint : public Constraint

@@ -3,7 +3,7 @@
 
 #ifndef CLOTH_SIM_H_INCLUDED
 #define CLOTH_SIM_H_INCLUDED
-
+#define M_PI 3.14159265358979323846  /* pi */
 
 #include "openGL_headers.h"
 #include "math_headers.h"
@@ -21,12 +21,14 @@ public:
 
 
     void initialize(unsigned int dim_x, unsigned int dim_z, const glm::vec3& cloth_min, const glm::vec3& cloth_max);
+	void uploadPoint();
     void update(const Scene* const scene, float dt);
     void draw(const VBO& vbos);
     void flip_draw_mode()
     {
         m_draw_wire = !m_draw_wire;
     }
+	
 protected:
     struct Edge
     {
@@ -39,6 +41,10 @@ protected:
     unsigned int m_solver_iterations;
     // vertices and estimated position.
     ParticleList m_vertices;
+	// neightbors of each of the particles.
+	std::vector<std::vector<unsigned int>> m_neighbors;
+	std::vector<float> m_lambdas;
+
     // internal and external constraints.
     std::vector<Constraint*> m_constraints_int;
     std::vector<CollisionConstraint> m_constraints_ext;
@@ -68,12 +74,19 @@ private:
     void collision_detection(const Scene* const scene);
     // self collision.
     void self_collision_detection();
-    // resolve all the constraints, both internal and external.
+	// PBF lines 8 to 19
+    void project_constraints();
+	// resolve all the constraints, both internal and external.
     void resolve_constriants();
     // update the position and velocity.
     void integration(float dt);
     void update_velocity(float friction, float restitution);
     void clean_collision_constraints();
+
+	void find_neighboring_particles();
+	float sph_density_estimator(unsigned int pi);
+	void calculate_lambda(unsigned int i);
+	glm::vec3 W_spiky(glm::vec3 r, float h);
 };
 
 #endif

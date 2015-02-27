@@ -52,6 +52,8 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_z, const glm::vec
     m_vertices.resize(m_dimx * m_dimz);
     m_normals.resize(m_dimx * m_dimz);
     m_colors.resize(m_dimx * m_dimz);
+	m_neighbors.resize(m_dimx * m_dimz);
+	m_lambdas.resize(m_dimx * m_dimz);
     // Assign initial position, velocity and mass to all the vertices.
     unsigned int i, k, index;
     for(i = 0; i < m_dimx; ++i)
@@ -62,6 +64,8 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_z, const glm::vec
             m_vertices.pos(index) = glm::vec3(delta.x * i + cloth_min.x, delta.y * k + cloth_min.y, delta.z * k + cloth_min.z);
             m_vertices.vel(index) = glm::vec3(0.0f);
             m_vertices.set_inv_mass(index, 1.0f);
+			m_neighbors.at(index) = std::vector<unsigned int>();
+			m_lambdas.at(index) = 0.0f;
         }
     }
     // TODO: change color if you want to.
@@ -102,6 +106,8 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_z, const glm::vec
     }
     // generate edge from the geometry
     generate_edge_list();
+	// find neighboring particles
+	find_neighboring_particles();
     // generate internal constraints.
     generate_internal_constraints();
 }
@@ -110,7 +116,7 @@ void ClothSim::update(const Scene* const scene, float dt)
 {// update the system for a certain time step dt.
     glm::vec3 gravity(0.0f, -9.8f, 0.0f);
     apply_external_force(gravity, dt);
-    damp_velocity(0.01f);
+    //damp_velocity(0.01f);
     compute_predicted_position(dt);
     collision_detection(scene);
     resolve_constriants();
@@ -122,48 +128,61 @@ void ClothSim::update(const Scene* const scene, float dt)
 }
 
 void ClothSim::draw(const VBO& vbos)
-{// visualize the cloth on the screen.
+{// visualize the cloth on the screen.    //clear color and depth buffer 
 
-    glPolygonMode(GL_FRONT_AND_BACK, (m_draw_wire ? GL_LINE : GL_FILL));
+	
+	     //clear color and depth buffer 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glLoadIdentity();//load identity matrix
+    
+    glPointSize(10.0f);//set point size to 10 pixels
+    glBegin(GL_POINTS); //starts drawing of points
+	for (int i = 0; i < m_vertices.size(); i++) {
+      glVertex3f(m_vertices.pos(i)[0],m_vertices.pos(i)[1],m_vertices.pos(i)[2]);//upper-right corner
+	}
+    glEnd();//end drawing of points
+	
 
-    unsigned int size = m_vertices.size();
-    unsigned int element_num = m_triangle_list.size();
-    // position
-    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_vertices.pos(0), GL_DYNAMIC_DRAW);
-    // color
-    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_cbo);
-    glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_colors[0], GL_STATIC_DRAW);
-    // normal
-    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
-    glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_normals[0], GL_DYNAMIC_DRAW);
+    //glPolygonMode(GL_FRONT_AND_BACK, (m_draw_wire ? GL_LINE : GL_FILL));
 
-    // indices
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbos.m_ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, element_num * sizeof(unsigned int), &m_triangle_list[0], GL_STATIC_DRAW);
+    //unsigned int size = m_vertices.size();
+    //unsigned int element_num = m_triangle_list.size();
+    //// position
+    //glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
+    //glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_vertices.pos(0), GL_DYNAMIC_DRAW);
+    //// color
+    //glBindBuffer(GL_ARRAY_BUFFER, vbos.m_cbo);
+    //glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_colors[0], GL_STATIC_DRAW);
+    //// normal
+    //glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
+    //glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_normals[0], GL_DYNAMIC_DRAW);
 
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
+    //// indices
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbos.m_ibo);
+    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, element_num * sizeof(unsigned int), &m_triangle_list[0], GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    //glEnableVertexAttribArray(0);
+    //glEnableVertexAttribArray(1);
+    //glEnableVertexAttribArray(2);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_cbo);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    //glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
+    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    //glBindBuffer(GL_ARRAY_BUFFER, vbos.m_cbo);
+    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbos.m_ibo);
-    glDrawElements(GL_TRIANGLES, element_num, GL_UNSIGNED_INT, 0);
+    //glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
+    //glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(2);
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbos.m_ibo);
+    //glDrawElements(GL_TRIANGLES, element_num, GL_UNSIGNED_INT, 0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    //glDisableVertexAttribArray(0);
+    //glDisableVertexAttribArray(1);
+    //glDisableVertexAttribArray(2);
+
+    //glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void ClothSim::generate_edge_list()
@@ -300,15 +319,93 @@ void ClothSim::generate_edge_list()
     printf("Edge number: %u.\n", m_edge_list.size());
 }
 
+/* poly6 kernal function */
+float W(glm::vec3 r, float h) {
+	float frac = 315.0f/ (64.0f * M_PI * glm::pow(h,9.0f));
+	float r2 = glm::length(r) * glm::length(r);
+	float temp = h*h - r2;
+	float temp2 = glm::pow(temp, 3.0f);
+	return frac*temp2;
+}
+
+glm::vec3 ClothSim::W_spiky(glm::vec3 r, float h) {
+	float a = 45.0f / (M_PI * glm::pow(h, 6.f));
+	float b = glm::pow(h - glm::length(r), 2.0f);
+	glm::vec3 c = glm::normalize(r);
+	return a * b * c;
+}
+
+float ClothSim::sph_density_estimator(unsigned int pi) {
+	float density = 0.0f;
+	float h = 7.0f; // smoothing radius
+	std::vector<unsigned int> neighbors_of_pi = m_neighbors.at(pi);
+	for (int j = 0; j < neighbors_of_pi.size(); j++) {
+		unsigned int neighbor_index = neighbors_of_pi[j];
+		float mass = m_vertices.inv_mass(pi);
+		glm::vec3 p_i = m_vertices.pos(pi);
+		glm::vec3 p_j = m_vertices.pos(neighbor_index);
+		glm::vec3 r = p_i - p_j;
+		density += mass * W(r, h);
+	}
+	return density;
+}
+
+glm::vec3 gradient_C(unsigned int i, unsigned int k) {
+	return glm::vec3(0.0f);
+}
+void ClothSim::calculate_lambda(unsigned int i) {
+	float density = sph_density_estimator(i);
+	float rest_density = 1000.0f;
+	float Ci = density / rest_density - 1.0f;
+	float sumk = 0.0f;
+	float h = 7.0f; // smoothing radius
+	glm::vec3 pi = m_vertices.pos(i);
+	glm::vec3 pj;
+	float gradientC = 0.0f;
+	for (int k = 0; k < m_vertices.size(); k++) {
+		if (k == i) {
+			glm::vec3 sum = glm::vec3(0.0f);
+			for (int j = 0; j < m_neighbors.at(i).size(); j++) {
+				int neighbor_index = m_neighbors.at(j)[0];
+				pj = m_vertices.pos(neighbor_index);
+				sum += W_spiky(pi - pj, h);
+			}
+			gradientC += glm::length(sum/rest_density);
+		} else {
+
+			for (int j = 0; j < m_neighbors.at(i).size(); j++) {
+				if (k == j) {
+					pj = m_vertices.pos(j);
+					glm::vec3 w = W_spiky(pi - pj, h);
+					gradientC += glm::length(w);
+				}
+			}
+		}
+		gradientC *= gradientC;
+	}
+
+	m_lambdas.at(i) = Ci;
+}
+
 void ClothSim::generate_internal_constraints()
 {// TODO: generate all internal constraints in this function.
 	// generating fixed point constraints.
 	unsigned int i, k, index;
+
+	/* Calculate lambda i (Line 10) */
+	for (i = 0; i < m_vertices.size(); i++) {
+		calculate_lambda(i);
+	}
+	
 	for(i = 0; i < m_dimx; ++i)
 	{
 		for(k = 0; k < m_dimz; ++k)
 		{
 			index = m_dimz * i + k;
+			float density_i = sph_density_estimator(index);
+
+			Constraint* density_constraint = new DensityConstraint(&m_vertices, &m_neighbors, m_lambdas, index);
+			m_constraints_int.push_back(density_constraint);
 			// TODO: add FixedPointConstraint to internal constraint.
 			//if (k==0) {
 			//	Constraint* f = new FixedPointConstraint(&m_vertices, index, m_vertices.pos(index));
@@ -328,7 +425,7 @@ void ClothSim::generate_internal_constraints()
 		p1 = m_vertices.pos(p1_);
 		p2 = m_vertices.pos(p2_);
 		Constraint* s = new StretchConstraint(&m_vertices, s_stiff, p1_, p2_, glm::length(p1-p2));
-		m_constraints_int.push_back(s);
+		//m_constraints_int.push_back(s);
     }
 
     // generate the bending constraints.
@@ -338,32 +435,32 @@ void ClothSim::generate_internal_constraints()
     unsigned int* tri;
 
     // TODO: assign an initial value for bend stiffness. DONOT USE 1.0f.
-    float bend_stiff = 0.1f;
-    float b_stiff = 1.0f - std::pow((1 - bend_stiff), 1.0f / m_solver_iterations);
-    for(std::vector<Edge>::iterator e = m_edge_list.begin(); e != m_edge_list.end(); ++e)
-    {
-        if(e->m_tri1 == e->m_tri2)
-            continue;
-        id1 = e->m_v1;
-        id2 = e->m_v2;
-        // here only the shared edge would be useful. 
-        // based on how we extract all these "shared" edges, we know that id1 < id2 and id1->id2 is the looping direction for the first triangle.
-        tri = &m_triangle_list[3 * e->m_tri1];
-        while((*tri == id1)||(*tri == id2))
-            tri++;
-        id3 = *tri;
+  //  float bend_stiff = 0.1f;
+  //  float b_stiff = 1.0f - std::pow((1 - bend_stiff), 1.0f / m_solver_iterations);
+  //  for(std::vector<Edge>::iterator e = m_edge_list.begin(); e != m_edge_list.end(); ++e)
+  //  {
+  //      if(e->m_tri1 == e->m_tri2)
+  //          continue;
+  //      id1 = e->m_v1;
+  //      id2 = e->m_v2;
+  //      // here only the shared edge would be useful. 
+  //      // based on how we extract all these "shared" edges, we know that id1 < id2 and id1->id2 is the looping direction for the first triangle.
+  //      tri = &m_triangle_list[3 * e->m_tri1];
+  //      while((*tri == id1)||(*tri == id2))
+  //          tri++;
+  //      id3 = *tri;
 
-        tri = &m_triangle_list[3 * e->m_tri2];
-        while((*tri == id1)||(*tri == id2))
-            tri++;
-        id4 = *tri;
-		
-        // TODO: add bend constraint here. hacky bend for basic requirement. real bend constraint for extra credit
+  //      tri = &m_triangle_list[3 * e->m_tri2];
+  //      while((*tri == id1)||(*tri == id2))
+  //          tri++;
+  //      id4 = *tri;
+		//
+  //      // TODO: add bend constraint here. hacky bend for basic requirement. real bend constraint for extra credit
 
-		//phi = 0;
-		//Constraint* b = new BendConstraint(&m_vertices, b_stiff, id1, id2, id3, id4, phi);
-		//m_constraints_int.push_back(b);
-    }
+		////phi = 0;
+		////Constraint* b = new BendConstraint(&m_vertices, b_stiff, id1, id2, id3, id4, phi);
+		////m_constraints_int.push_back(b);
+  //  }
 }
 
 void ClothSim::compute_normal()
@@ -466,6 +563,25 @@ void ClothSim::compute_predicted_position(float dt)
     }
 }
 
+void ClothSim::find_neighboring_particles(){
+	unsigned int i, j, size;
+    size = m_vertices.size();
+	glm::vec3 p1, p2;
+	float radius = 5.f;
+    for(i = 0; i < size; ++i) {
+        p1 = m_vertices.pos(i);
+		std::vector<unsigned int> p1_neighbors = m_neighbors.at(i);
+		p1_neighbors.clear();
+		for (j = 0; j < size; ++j) {
+			p2 = m_vertices.pos(j);
+			if (glm::distance(p1, p2) <= radius && i != j) {
+				p1_neighbors.push_back(j);
+			}
+		}
+		m_neighbors.at(i) = p1_neighbors;
+	}
+}
+
 void ClothSim::collision_detection(const Scene* const scene)
 {// detect collision between cloth and the scene, and generate external constraints.
     unsigned int i, size;
@@ -490,6 +606,12 @@ void ClothSim::self_collision_detection()
     ;
 }
 
+void ClothSim::project_constraints() {
+	for (unsigned int n = 0; n < m_solver_iterations; ++n) {
+
+	}
+}
+
 void ClothSim::resolve_constriants()
 {// resolve all the constraints, including both internal and external constraints.
     bool all_solved = true;
@@ -497,6 +619,8 @@ void ClothSim::resolve_constriants()
     int i, size;
     for(unsigned int n = 0; n < m_solver_iterations; ++n)
     {
+
+
         // solve all the internal constraints.
         size = m_constraints_int.size();
         for(i = reverse ? (size - 1) : 0; (i < size) && (i >= 0); reverse ? --i : ++i)
