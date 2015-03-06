@@ -329,6 +329,7 @@ float W(glm::vec3 r, float h) {
 }
 
 glm::vec3 ClothSim::W_spiky(glm::vec3 r, float h) {
+	if (r.x == 0 && r.y == 0 && r.z == 0) return glm::vec3(0,0,0);
 	float a = 45.0f / (M_PI * glm::pow(h, 6.f));
 	float b = glm::pow(h - glm::length(r), 2.0f);
 	glm::vec3 c = glm::normalize(r);
@@ -377,14 +378,15 @@ void ClothSim::calculate_lambda(unsigned int i) {
 				if (k == j) {
 					pj = m_vertices.pos(j);
 					glm::vec3 w = W_spiky(pi - pj, h);
+					float lengthw = glm::length(w);
 					gradientC += glm::length(w);
 				}
 			}
 		}
-		gradientC *= gradientC;
+		gradientC += gradientC*(gradientC+1); 
 	}
 
-	m_lambdas.at(i) = Ci;
+	m_lambdas.at(i) = Ci/gradientC;
 }
 
 void ClothSim::generate_internal_constraints()

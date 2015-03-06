@@ -61,45 +61,23 @@ void Scene::Plane::init_visualization()
     m_normals.clear();
     m_indices.clear();
 
-    glm::vec3 center(m_value * m_normal);
-    glm::vec3 local_x, local_z;
-    local_x = glm::cross(m_normal, glm::vec3(0.0f, 0.0f, 1.0f));
-    if(glm::length(local_x) < 0.00001f)
-        local_x = glm::cross(m_normal, glm::vec3(1.0f, 0.0f, 0.0f));
-    local_x = glm::normalize(local_x);
-    local_z = glm::normalize(glm::cross(local_x, m_normal));
-
     glm::vec3 mat_color(0.6f);
-    unsigned int slice = 24;
 
-    glm::vec3 vertex(center);
-    m_positions.push_back(center);
-    m_normals.push_back(m_normal);
-    m_colors.push_back(mat_color);
+	m_positions.push_back(glm::vec3(20,0,20));
+	m_positions.push_back(glm::vec3(20,0,-20));
+	m_positions.push_back(glm::vec3(-20,0,20));
+	m_positions.push_back(glm::vec3(-20,0,-20));
 
-    float delta = 360.0f / slice;
-    float radius = 100.0f;
-    glm::vec3 local_pos;
-    for(float theta = 0.0f; theta <= 360.0f; theta += delta)
-    {
-        local_pos.x = radius * cos(glm::radians(theta));
-        local_pos.z = radius * sin(glm::radians(theta));
-
-        vertex = local_pos.x * local_x - local_pos.z * local_z + center;
-
-        m_positions.push_back(vertex);
-        m_normals.push_back(m_normal);
-        m_colors.push_back(mat_color);
-    }
-    for(unsigned int i = 0; i < slice; ++i)
-    {
-        m_indices.push_back(0);
-        m_indices.push_back(i + 1);
-        m_indices.push_back(i + 2);
-    }
-    m_indices.push_back(0);
-    m_indices.push_back(slice);
-    m_indices.push_back(1);
+	for (unsigned int i = 0; i < m_positions.size(); i++) {
+		m_normals.push_back(m_normal);
+		m_colors.push_back(mat_color);
+	}
+	m_indices.push_back(0);
+	m_indices.push_back(1);
+	m_indices.push_back(2);
+	m_indices.push_back(1);
+	m_indices.push_back(2);
+	m_indices.push_back(3);
 }
 
 void Scene::Plane::draw(const VBO& vbos) const

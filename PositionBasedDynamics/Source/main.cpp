@@ -28,7 +28,7 @@ GLuint m_vert_handle, m_frag_handle, m_shaderprog_handle;
 
 //----------Camera Control----------//
 float eye_distance = 20.0f;
-float head = 45.0f, pitch = 45.0f;
+float head = 45.0f, pitch = 0.0f;
 glm::vec3 cam_pos, up(0.0f, 1.0f, 0.0f), lookat(0.0f, 4.0f, 0.0f);
 
 //----------functions----------//
@@ -225,6 +225,7 @@ void aimCamera(void)
     cam_pos.y = lookat.y + eye_distance * glm::sin(r_head);
     cam_pos.z = lookat.z + eye_distance * glm::cos(r_head) * glm::sin(r_pitch);
 
+	//cam_pos = glm::vec3(10,10,10);
     glMatrixMode(GL_MODELVIEW);
     up = glm::vec3(0.0f, (glm::cos(r_head) > 0.0f) ? 1.0f : -1.0f, 0.0f);
     glm::mat4 modelview = glm::lookAt(cam_pos, lookat, up);
