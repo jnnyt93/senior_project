@@ -20,7 +20,7 @@ public:
     virtual ~ClothSim();
 
 
-    void initialize(unsigned int dim_x, unsigned int dim_z, const glm::vec3& cloth_min, const glm::vec3& cloth_max);
+    void initialize(unsigned int dim_x, unsigned int dim_z, unsigned int dim_y, const glm::vec3& cloth_min, const glm::vec3& cloth_max);
 	void uploadPoint();
     void update(const Scene* const scene, float dt);
     void draw(const VBO& vbos);
@@ -36,7 +36,7 @@ protected:
         unsigned int m_tri1, m_tri2;
     };
 protected:
-    unsigned int m_dimx, m_dimz;
+    unsigned int m_dimx, m_dimy, m_dimz;
     float m_thick;
     unsigned int m_solver_iterations;
     // vertices and estimated position.
@@ -87,6 +87,9 @@ private:
 	float sph_density_estimator(unsigned int pi);
 	void calculate_lambda(unsigned int i);
 	glm::vec3 W_spiky(glm::vec3 r, float h);
+	glm::vec3 ClothSim::gradient_C(unsigned int i, unsigned int k);
+	float h; //smoothing radius
+	float rest_density;
 };
 
 #endif

@@ -312,9 +312,9 @@ int main(int argc, char** argv)
     VBO vbo_handle;
     Scene scene("../Scene/test_scene.xml");
     // TODO: change here if you want to use a smaller iteration number.
-    ClothSim cloth_sim(10);
+    ClothSim cloth_sim(1);
     // TODO: change here if you want to modify the dimension.
-    cloth_sim.initialize(20, 20, glm::vec3(-5.0f, 10.0f, -5.0f), glm::vec3(5.0f, 10.0f, 5.0f));
+    cloth_sim.initialize(3, 3, 3, glm::vec3(-0.5f, 2.0f, -0.5f), glm::vec3(0.5f, 1.0f, 0.5f));
 
     lastTime = glfwGetTime();
     while(run)

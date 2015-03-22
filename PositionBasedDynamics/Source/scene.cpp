@@ -283,7 +283,7 @@ void Scene::Sphere::draw(const VBO& vbos) const
 bool Scene::Sphere::line_intersection(const glm::vec3& p1, const glm::vec3& p2, float threshold, glm::vec3& intersect, glm::vec3& normal) const
 {// TODO: implement line-sphere intersection. you can refer to line-plane intersection.
 
-	 float v1, v2;// v1 v2 are distance to sphere for p1 and p2.
+	float v1, v2;// v1 v2 are distance to sphere for p1 and p2.
     glm::vec3 center = m_center;
 	float radius = m_radius;
 
@@ -311,27 +311,6 @@ bool Scene::Sphere::line_intersection(const glm::vec3& p1, const glm::vec3& p2, 
     }
     else
         return false;
-
- //   float v1, v2;// v1 v2 are distance to sphere for p1 and p2.
-	//v1 = glm::length(p1 - m_center) - m_radius;
- //   v2 = glm::length(p2 - m_center) - m_radius;
-
- //   if(v2 < threshold)
- //   {
- //       if(v1 >= threshold)
- //       {// continuous collision handling.
- //           intersect = glm::vec3(0.0f);
- //           normal = glm::vec3(0.0f);
- //       }
- //       else
- //       {// static collision handling.
- //           intersect = glm::vec3(0.0f);
- //           normal = glm::vec3(0.0f);
- //       }
- //       return true;
- //   }
- //   else
- //       return false;
 }
 
 //----------Scene Visitor Class----------//
