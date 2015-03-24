@@ -54,7 +54,7 @@ DensityConstraint::DensityConstraint(ParticleList *verts, std::vector<std::vecto
 	m_lambdas(lambdas),
 	m_p0(p0),
 	rest_density(1000.0f),
-	h(7.0f)
+	h(1.0f)
 {
     ;
 }

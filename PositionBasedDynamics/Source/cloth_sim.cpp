@@ -41,7 +41,7 @@ ClothSim::~ClothSim()
 
 void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int dim_z, const glm::vec3& cloth_min, const glm::vec3& cloth_max)
 {// initialize the cloth here. feel free to create your own initialization.
-	h = 7.0f;
+	h = 1.0f;
 	rest_density = 1000.0f;
     m_dimx = dim_x;
 	m_dimy = dim_y;
@@ -80,7 +80,7 @@ void ClothSim::update(const Scene* const scene, float dt)
 {// update the system for a certain time step dt.
     glm::vec3 gravity(0.0f, -9.8f, 0.0f);
     apply_external_force(gravity, dt);
-    //damp_velocity(0.01f);
+    damp_velocity(0.01f);
     compute_predicted_position(dt);
 	find_neighboring_particles();
 	collision_detection(scene);
@@ -339,9 +339,9 @@ void ClothSim::calculate_lambda(unsigned int i) {
 	float rest_density = 1000.0f;
 	float Ci = density / rest_density - 1.0f;
 	float sumk = 0.0f;
-
+	glm::vec3 grad_c = glm::vec3(0.0f);
 	for (int k = 0; k < m_vertices.size(); k++) {
-		glm::vec3 grad_c = gradient_C(i, k);
+		//glm::vec3 grad_c = gradient_C(i, k);
 		float l = 0;
 		if (grad_c != glm::vec3(0,0,0))
 			l = glm::length(grad_c);
@@ -468,7 +468,7 @@ void ClothSim::find_neighboring_particles(){
 	unsigned int i, j, size;
     size = m_vertices.size();
 	glm::vec3 p1, p2;
-	float radius = 5.f;
+	float radius = 0.5f;
     for(i = 0; i < size; ++i) {
         p1 = m_vertices.pos(i);
 		std::vector<unsigned int> p1_neighbors = m_neighbors.at(i);

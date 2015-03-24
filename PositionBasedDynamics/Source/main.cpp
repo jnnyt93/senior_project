@@ -304,7 +304,7 @@ int main(int argc, char** argv)
     glfwSetMouseButtonCallback(mouseClick);
     glfwSetMousePosCallback(mouseMotion);
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
     glViewport(0, 0, window_width, window_height);
@@ -314,7 +314,7 @@ int main(int argc, char** argv)
     // TODO: change here if you want to use a smaller iteration number.
     ClothSim cloth_sim(1);
     // TODO: change here if you want to modify the dimension.
-    cloth_sim.initialize(3, 3, 3, glm::vec3(-0.5f, 2.0f, -0.5f), glm::vec3(0.5f, 1.0f, 0.5f));
+    cloth_sim.initialize(5, 5, 5, glm::vec3(-0.5f, 2.0f, -0.5f), glm::vec3(0.5f, 1.0f, 0.5f));
 
     lastTime = glfwGetTime();
     while(run)
