@@ -323,8 +323,7 @@ glm::vec3 ClothSim::gradient_C(unsigned int i, unsigned int k) {
 	} else {
 		for (int j = 0; j < m_neighbors.at(i).size(); j++) {
 			if (k == j) {
-				int neighbor_index = m_neighbors.at(j)[0];
-				pj = m_vertices.pos(neighbor_index);
+				pj = m_vertices.pos(j);
 				sum = -1.0f*W_spiky(pi - pj, h);
 				break;
 			}
@@ -336,19 +335,19 @@ glm::vec3 ClothSim::gradient_C(unsigned int i, unsigned int k) {
 
 void ClothSim::calculate_lambda(unsigned int i) {
 	float density = sph_density_estimator(i);
-	float rest_density = 1000.0f;
 	float Ci = density / rest_density - 1.0f;
 	float sumk = 0.0f;
 	glm::vec3 grad_c = glm::vec3(0.0f);
 	for (int k = 0; k < m_vertices.size(); k++) {
-		//glm::vec3 grad_c = gradient_C(i, k);
+		grad_c = gradient_C(i, k);
 		float l = 0;
 		if (grad_c != glm::vec3(0,0,0))
 			l = glm::length(grad_c);
 		sumk += l*l;
 	}
 	if (sumk == 0.0f) sumk = 1.0f;
-	m_lambdas.at(i) = Ci/sumk;
+	float epsilon = 200;
+	m_lambdas.at(i) = Ci/(sumk + epsilon);
 }
 
 void ClothSim::generate_internal_constraints()
