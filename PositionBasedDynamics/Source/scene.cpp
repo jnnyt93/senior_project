@@ -144,6 +144,198 @@ bool Scene::Plane::line_intersection(const glm::vec3& p1, const glm::vec3& p2, f
         return false;
 }
 
+//----------Box Class----------//
+void Scene::Box::init_visualization()
+{
+    m_positions.clear();
+    m_colors.clear();
+    m_normals.clear();
+    m_indices.clear();
+
+    glm::vec3 mat_color(0.8f);
+	unsigned int num_faces = 5;
+	unsigned int num_verts_per_face = 4;
+	unsigned int num_verts_per_tri = 3;
+	unsigned int num_tris_per_face = 2;
+
+	glm::vec3 dim = glm::vec3(2,2,2);
+	glm::vec3 center = glm::vec3(0,0,0);
+
+	// bottom
+	m_positions.push_back(glm::vec3(+dim.x,0,+dim.z));
+	m_positions.push_back(glm::vec3(+dim.x,0,-dim.z));
+	m_positions.push_back(glm::vec3(-dim.x,0,+dim.z));
+	m_positions.push_back(glm::vec3(-dim.x,0,-dim.z));
+
+	// right
+	m_positions.push_back(glm::vec3(+dim.x,+dim.y,-dim.z));
+	m_positions.push_back(glm::vec3(+dim.x,0,-dim.z));
+	m_positions.push_back(glm::vec3(-dim.x,+dim.y,-dim.z));
+	m_positions.push_back(glm::vec3(-dim.x,0,-dim.z));
+
+	// left
+	m_positions.push_back(glm::vec3(+dim.x,+dim.y,+dim.z));
+	m_positions.push_back(glm::vec3(+dim.x,0,+dim.z));
+	m_positions.push_back(glm::vec3(-dim.x,+dim.y,+dim.z));
+	m_positions.push_back(glm::vec3(-dim.x,0,+dim.z));
+
+	// back
+	m_positions.push_back(glm::vec3(-dim.x,+dim.y,+dim.z));
+	m_positions.push_back(glm::vec3(-dim.x,+dim.y,-dim.z));
+	m_positions.push_back(glm::vec3(-dim.x,0,+dim.z));
+	m_positions.push_back(glm::vec3(-dim.x,0,-dim.z));
+
+	// front
+	m_positions.push_back(glm::vec3(dim.x,+dim.y,+dim.z));
+	m_positions.push_back(glm::vec3(dim.x,+dim.y,-dim.z));
+	m_positions.push_back(glm::vec3(dim.x,0,+dim.z));
+	m_positions.push_back(glm::vec3(dim.x,0,-dim.z));
+
+	std::vector<glm::vec3> temp_normals;
+	temp_normals.push_back(glm::vec3(0,1,0));
+	temp_normals.push_back(glm::vec3(0,0,1));
+	temp_normals.push_back(glm::vec3(0,0,-1));
+	temp_normals.push_back(glm::vec3(1,0,0));
+	temp_normals.push_back(glm::vec3(-1,0,0));
+
+	for (int i = 0; i < num_faces; i++) {
+		for (int j = 0; j < num_verts_per_face; j++) {
+			m_normals.push_back(temp_normals[i]);
+			m_colors.push_back(mat_color);
+		}
+	}
+
+	unsigned int index = 0;
+	for (int k = 0; k < num_faces; k++) {
+		for (int i = 0; i < num_tris_per_face; i++) {
+			for (int j = 0; j < num_verts_per_tri; j++) {
+				m_indices.push_back(i+j+index);
+			}
+		}
+		index = index + 4;
+	}
+
+}
+
+void Scene::Box::draw(const VBO& vbos) const
+{
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    // position
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
+    glBufferData(GL_ARRAY_BUFFER, 3 * m_positions.size() * sizeof(float), &m_positions[0], GL_STREAM_DRAW);
+
+    // color
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_cbo);
+    glBufferData(GL_ARRAY_BUFFER, 3 * m_colors.size() * sizeof(float), &m_colors[0], GL_STREAM_DRAW);
+
+    // normal
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
+    glBufferData(GL_ARRAY_BUFFER, 3 * m_normals.size() * sizeof(float), &m_normals[0], GL_STREAM_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbos.m_ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(unsigned short), &m_indices[0], GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_cbo);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbos.m_ibo);
+    glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_SHORT, 0);//GL_UNSIGNED_INT
+
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+float area(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3) {
+	float area = 0.5 * glm::length(glm::cross(p1 - p3, p1 - p2));
+	return area;
+}
+
+bool intersectTriangle(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, glm::vec3 p) {
+	float s = area(p1, p2, p3);
+	float s1 = area(p, p2, p3)/s;
+	float s2 = area(p, p3, p1)/s;
+	float s3 = area(p, p1, p2)/s;
+	if (s1 >= 0 && s1 <= 1 && s2 >= 0 && s2 <= 1 && s3 >= 0 && s3 <= 1 && (s1 + s2 + s3) >= 0.99999 && (s1 + s2 + s3) <= 1.0001) {
+		return true;
+	}
+	return false;
+}
+
+bool Scene::Box::line_intersection(const glm::vec3& p1, const glm::vec3& p2, float threshold, glm::vec3& intersect, glm::vec3& normal) const
+{
+	//bool intersected = false;
+	//unsigned int numTriangles = m_indices.size()/3.0;
+	//float t = FLT_MAX;
+	//glm::vec3 dir = glm::normalize(p2-p1);
+
+	//for (int i = 0, index = 0; i < numTriangles; i++, index=index+3) {
+	//	int i1 = m_indices[index];
+	//	int i2 = m_indices[index+1];
+	//	int i3 = m_indices[index+2];
+
+	//	glm::vec3 v1 = m_positions[i1];
+	//	glm::vec3 v2 = m_positions[i2];
+	//	glm::vec3 v3 = m_positions[i3];
+
+	//	glm::vec3 n = glm::cross((v2 - v1), (v3 - v1));
+
+	//	if (glm::dot(dir, n) == 0) {
+	//		continue;
+	//	}
+
+	//	float t_new = glm::dot((v1 - p1), n) / glm::dot(dir, n);
+
+	//	glm::vec3 p = p1 + (t_new * dir);
+
+	//	bool intersected = intersectTriangle(v1, v2, v3, p);
+	//	if (intersected) {
+	//		if (t_new < t) {
+	//			t = t_new;
+	//			intersect = p;
+	//			normal = n;
+	//		}
+	//	}
+	//}
+	//return intersected;
+	float v1, v2;
+	threshold = 0.8f;
+	for (int i = 0; i < m_normals.size(); i++) {
+		glm::vec3 m_normal = m_normals[i];
+		
+		v1 = glm::dot(p1, m_normal);
+		v2 = glm::dot(p2, m_normal);
+		if(v2 < threshold)
+		{
+			normal = m_normal;
+			if (v1 >= threshold)
+			{// continuous collision handling.
+				intersect = ((v1 - threshold) * p2 - (v2 - threshold) * p1) / (v1 - v2);
+			}
+			else
+			{// static collision handling.
+				intersect = p2 - (v2 - threshold) * normal;
+			}
+			return true;
+		}
+
+	}
+	return false;
+}
+
 //----------Sphere Class----------//
 void Scene::Sphere::init_visualization()
 {
@@ -368,6 +560,15 @@ bool XMLSceneVisitor::VisitEnter(const TiXmlElement& element, const TiXmlAttribu
         m_current = new Scene::Plane(normal, value);
         return true;
     }
+	else if (element.ValueStr() == "box")
+    {
+        if(element.Parent()->ValueStr() != "primitives")
+            return false;
+        assert(m_current == NULL);
+
+        m_current = new Scene::Box();
+        return true;
+    }
     else if (element.ValueStr() == "sphere")
     {
         if(element.Parent()->ValueStr() != "primitives")
@@ -404,6 +605,12 @@ bool XMLSceneVisitor::VisitExit( const TiXmlElement& element)
         return true;
     }
     else if (element.ValueStr() == "plane")
+    {
+        m_scene->insert_primitive(m_current);
+        m_current = NULL;
+        return true;
+    }
+	else if (element.ValueStr() == "box")
     {
         m_scene->insert_primitive(m_current);
         m_current = NULL;

@@ -24,7 +24,7 @@ public:
     virtual void draw(const VBO& vbo);
 public:
     // TODO: add more primitives here.
-    enum PrimitiveType {PLANE, SPHERE};
+    enum PrimitiveType {PLANE, SPHERE, BOX};
     class Primitive
     {
     public:
@@ -82,6 +82,21 @@ public:
     protected:
         glm::vec3 m_normal;
         float m_value;
+    };
+
+	class Box : public Primitive
+    {
+    public:
+        Box() : Primitive(BOX) {init_visualization();};
+        Box(const glm::vec3 norm, float value) : Primitive(BOX) {init_visualization();};
+        Box(const Plane& other) : Primitive(other) {};
+        virtual ~Box() {};
+
+        virtual void draw(const VBO& vbos) const;
+        virtual bool line_intersection(const glm::vec3& p1, const glm::vec3& p2, float threshold, glm::vec3& intersect, glm::vec3& normal) const;
+        
+    protected:
+        virtual void init_visualization();
     };
 
     class Sphere : public Primitive

@@ -314,7 +314,7 @@ int main(int argc, char** argv)
     // TODO: change here if you want to use a smaller iteration number.
     ClothSim cloth_sim(1);
     // TODO: change here if you want to modify the dimension.
-    cloth_sim.initialize(5, 5, 5, glm::vec3(-1.5f, 2.5f, -1.5f), glm::vec3(0.5f, 1.0f, 0.5f));
+    cloth_sim.initialize(5, 5, 5, glm::vec3(-1.5f, 1.0f, -1.5f), glm::vec3(1.5f, 2.5f, 1.5f));
 
     lastTime = glfwGetTime();
     while(run)
