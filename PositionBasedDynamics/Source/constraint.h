@@ -30,7 +30,7 @@ class DensityConstraint : public Constraint
 {
 public:
     DensityConstraint();
-    DensityConstraint(ParticleList *verts, std::vector<std::vector<unsigned int>>* neighbors, std::vector<float> lambdas, unsigned int p0);
+    DensityConstraint(ParticleList *verts, std::vector<std::vector<unsigned int>>* neighbors, std::vector<float> lambdas, unsigned int p0, float h);
     DensityConstraint(const DensityConstraint& other);
     virtual ~DensityConstraint();
 

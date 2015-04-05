@@ -52,9 +52,10 @@ protected:
     //std::vector<Constraint*> m_constraints_ext;
     // for visualize the cloth.
     bool m_draw_wire;
+	std::vector<glm::vec3> m_positions;
     std::vector<glm::vec3> m_normals;
     std::vector<glm::vec3> m_colors;
-    std::vector<unsigned int> m_triangle_list;
+    std::vector<unsigned int> m_indices;
     // for generating constraints.
     std::vector<Edge> m_edge_list;
 private:
@@ -70,17 +71,14 @@ private:
     void damp_velocity(float k_damp);
     // compute predicted position based on velocity.
     void compute_predicted_position(float dt);
-    // collision detection, generating external constraints. need to generate constraints per frame.
-    void collision_detection(const Scene* const scene);
-    // self collision.
-    void self_collision_detection();
+
 	// PBF lines 8 to 19
     void project_constraints();
 	// resolve all the constraints, both internal and external.
     void resolve_constriants();
     // update the position and velocity.
     void integration(float dt);
-    void update_velocity(float friction, float restitution);
+    void update_velocity(float dt);
     void clean_collision_constraints();
 
 	void find_neighboring_particles();
@@ -88,8 +86,18 @@ private:
 	void calculate_lambda(unsigned int i);
 	glm::vec3 W_spiky(glm::vec3 r, float h);
 	glm::vec3 ClothSim::gradient_C(unsigned int i, unsigned int k);
+	void sphere_init_visualization(glm::vec3 m_center);
+	float m_radius;
+
+	void resolve_box_collision(int i, float dt);
+	void resolve_particle_collision(int i, int j, float dt);
+	bool detect_particle_collision(int i, int j, float dt);
 	float h; //smoothing radius
 	float rest_density;
+	float epsilon;
+	float friction;
+	float restitution;
+
 };
 
 #endif

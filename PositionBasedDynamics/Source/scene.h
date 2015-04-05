@@ -93,10 +93,12 @@ public:
         virtual ~Box() {};
 
         virtual void draw(const VBO& vbos) const;
-        virtual bool line_intersection(const glm::vec3& p1, const glm::vec3& p2, float threshold, glm::vec3& intersect, glm::vec3& normal) const;
+        virtual bool point_intersection(glm::vec3 p);
         
     protected:
         virtual void init_visualization();
+		glm::vec3 dim;
+		glm::vec3 center;
     };
 
     class Sphere : public Primitive

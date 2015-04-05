@@ -158,8 +158,8 @@ void Scene::Box::init_visualization()
 	unsigned int num_verts_per_tri = 3;
 	unsigned int num_tris_per_face = 2;
 
-	glm::vec3 dim = glm::vec3(2,2,2);
-	glm::vec3 center = glm::vec3(0,0,0);
+	dim = glm::vec3(2,2,2);
+	center = glm::vec3(0,0,0);
 
 	// bottom
 	m_positions.push_back(glm::vec3(+dim.x,0,+dim.z));
@@ -259,82 +259,11 @@ void Scene::Box::draw(const VBO& vbos) const
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-float area(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3) {
-	float area = 0.5 * glm::length(glm::cross(p1 - p3, p1 - p2));
-	return area;
-}
-
-bool intersectTriangle(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, glm::vec3 p) {
-	float s = area(p1, p2, p3);
-	float s1 = area(p, p2, p3)/s;
-	float s2 = area(p, p3, p1)/s;
-	float s3 = area(p, p1, p2)/s;
-	if (s1 >= 0 && s1 <= 1 && s2 >= 0 && s2 <= 1 && s3 >= 0 && s3 <= 1 && (s1 + s2 + s3) >= 0.99999 && (s1 + s2 + s3) <= 1.0001) {
-		return true;
-	}
+bool Scene::Box::point_intersection(glm::vec3 p) {
+	
 	return false;
 }
 
-bool Scene::Box::line_intersection(const glm::vec3& p1, const glm::vec3& p2, float threshold, glm::vec3& intersect, glm::vec3& normal) const
-{
-	//bool intersected = false;
-	//unsigned int numTriangles = m_indices.size()/3.0;
-	//float t = FLT_MAX;
-	//glm::vec3 dir = glm::normalize(p2-p1);
-
-	//for (int i = 0, index = 0; i < numTriangles; i++, index=index+3) {
-	//	int i1 = m_indices[index];
-	//	int i2 = m_indices[index+1];
-	//	int i3 = m_indices[index+2];
-
-	//	glm::vec3 v1 = m_positions[i1];
-	//	glm::vec3 v2 = m_positions[i2];
-	//	glm::vec3 v3 = m_positions[i3];
-
-	//	glm::vec3 n = glm::cross((v2 - v1), (v3 - v1));
-
-	//	if (glm::dot(dir, n) == 0) {
-	//		continue;
-	//	}
-
-	//	float t_new = glm::dot((v1 - p1), n) / glm::dot(dir, n);
-
-	//	glm::vec3 p = p1 + (t_new * dir);
-
-	//	bool intersected = intersectTriangle(v1, v2, v3, p);
-	//	if (intersected) {
-	//		if (t_new < t) {
-	//			t = t_new;
-	//			intersect = p;
-	//			normal = n;
-	//		}
-	//	}
-	//}
-	//return intersected;
-	float v1, v2;
-	threshold = 0.8f;
-	for (int i = 0; i < m_normals.size(); i++) {
-		glm::vec3 m_normal = m_normals[i];
-		
-		v1 = glm::dot(p1, m_normal);
-		v2 = glm::dot(p2, m_normal);
-		if(v2 < threshold)
-		{
-			normal = m_normal;
-			if (v1 >= threshold)
-			{// continuous collision handling.
-				intersect = ((v1 - threshold) * p2 - (v2 - threshold) * p1) / (v1 - v2);
-			}
-			else
-			{// static collision handling.
-				intersect = p2 - (v2 - threshold) * normal;
-			}
-			return true;
-		}
-
-	}
-	return false;
-}
 
 //----------Sphere Class----------//
 void Scene::Sphere::init_visualization()
