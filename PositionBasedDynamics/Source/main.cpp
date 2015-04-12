@@ -314,7 +314,7 @@ int main(int argc, char** argv)
     // TODO: change here if you want to use a smaller iteration number.
     ClothSim cloth_sim(1);
     // TODO: change here if you want to modify the dimension.
-    cloth_sim.initialize(5, 5, 5, glm::vec3(-1.5f, 0.2f, -1.5f), glm::vec3(2.5f, 3.5f, 2.5f));
+    cloth_sim.initialize(3, 3, 3, glm::vec3(-2.5f, 0.5f, -2.5f), glm::vec3(3.5f, 3.0f, 3.5f));
 	
 
     lastTime = glfwGetTime();
@@ -332,6 +332,9 @@ int main(int argc, char** argv)
             flip_draw_mode = false;
         }
         activate_shaderprog(m_shaderprog_handle);
+		//For each particle, compute its translation matrix (and scale if appropriate)
+		//Pass this matrix to the shader, then render a sphere (sphere.draw, probably)
+		//Repeat
         cloth_sim.draw(vbo_handle);
         scene.draw(vbo_handle);
         deactivate_shaderprog(m_shaderprog_handle);

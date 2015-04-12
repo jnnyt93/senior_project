@@ -71,21 +71,20 @@ DensityConstraint::~DensityConstraint()
 }
 
 glm::vec3 W_spiky(glm::vec3 r, float h) {
-	if (r.x == 0 && r.y == 0 && r.z == 0) return glm::vec3(0,0,0);
-	//if (r.x < 0) r.x = -r.x;
-	//if (r.y < 0) r.y = -r.y;
-	//if (r.z < 0) r.z = -r.z;
+	if(glm::length(r)>h)
+		return glm::vec3(0.00001,0.00001,0.00001);
 	float a = 45.0f / (M_PI * glm::pow(h, 6.f));
 	float b = glm::pow(h - glm::length(r), 2.0f);
-	glm::vec3 c = r / glm::length(r);
-	return a * b * c;
+	glm::vec3 c = r/(glm::length(r) + 0.001f);
+	glm::vec3 ret = a * b * c;
+	return ret;
 }
 
 bool DensityConstraint::project_constraint()
 {// TODO: implement the project function for FixedPointConstraint.
     //return true if current position is OK. return false if the position is being projected
 
-	m_vertices->lock_pos(m_p0);
+	//m_vertices->lock_pos(m_p0);
 	//return true;
 	glm::vec3 dp0 = glm::vec3(0.0f);
 	std::vector<unsigned int> neighbors_of_p0 = m_neighbors->at(m_p0);

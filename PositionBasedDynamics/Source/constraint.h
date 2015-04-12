@@ -42,6 +42,7 @@ protected:
 	float rest_density;
 	std::vector<std::vector<unsigned int>>* m_neighbors;
 	std::vector<float> m_lambdas;
+	
 };
 
 class FixedPointConstraint : public Constraint

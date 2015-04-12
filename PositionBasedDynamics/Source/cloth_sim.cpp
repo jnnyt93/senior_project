@@ -3,8 +3,7 @@
 
 #include "cloth_sim.h"
 #define FOR_EACH_PARTICLE \
-	for(int i = 0; i < m_vertices.size(); i++)  \
-
+	for(unsigned int i = 0; i < m_vertices.size(); i++)  \
 
 ClothSim::ClothSim() : 
     m_dimx(0), m_dimy(0), m_dimz(0),
@@ -43,10 +42,10 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 {// initialize the cloth here. feel free to create your own initialization.
 	h = 1.0f;
 	rest_density = 1000.0f;
-	epsilon = 100.0f;
+	epsilon = 0.01f;
 	friction = 0.98;
 	restitution = 1.5f;
-	m_radius = 0.01f;
+	m_radius = 1.0f;
     m_dimx = dim_x;
 	m_dimy = dim_y;
     m_dimz = dim_z;
@@ -61,10 +60,13 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 	m_colors.resize(m_dimx * m_dimy * m_dimz);
 	m_neighbors.resize(m_dimx * m_dimy * m_dimz);
 	m_lambdas.resize(m_dimx * m_dimy * m_dimz);
+	m_densities.resize(m_dimx * m_dimy * m_dimz);
+	m_C.resize(m_dimx * m_dimy * m_dimz);
+	m_gradC.resize(m_dimx * m_dimy * m_dimz);
 	// Assign initial position, velocity and mass to all the vertices.
 	unsigned int i, k, j, index;
 	index = 0;
-	float d = 0.2f;
+	float d = 0.0f;
 	for(i = 0; i < m_dimx; ++i) {
 		for (j = 0; j < dim_y; ++j) {
 			for(k = 0; k < m_dimz; ++k) {
@@ -75,6 +77,9 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 				m_vertices.set_inv_mass(index, 1.0f);
 				m_neighbors.at(index) = std::vector<unsigned int>();
 				m_lambdas.at(index) = 0.0f;
+				m_densities.at(index) = 0.0f;
+				m_C.at(index) = 0.0f;
+				m_gradC.at(index) = 0.0f;
 				index++;
 			}
 		}
@@ -83,7 +88,6 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 
 
 }
-
 
 void ClothSim::sphere_init_visualization(glm::vec3 m_center)
 {
@@ -182,7 +186,7 @@ void ClothSim::update(const Scene* const scene, float dt)
 	find_neighboring_particles();
     resolve_constriants();
     integration(dt);
-    //update_velocity(dt);
+    update_velocity(dt);
     //clean_collision_constraints();
 }
 
@@ -248,8 +252,6 @@ float W(glm::vec3 r, float h) {
 }
 
 glm::vec3 ClothSim::W_spiky(glm::vec3 r, float h) {
-	if(glm::length(r)>h)
-		return glm::vec3(0.00001,0.00001,0.00001);
 	float a = 45.0f / (M_PI * glm::pow(h, 6.f));
 	float b = glm::pow(h - glm::length(r), 2.0f);
 	glm::vec3 c = r/(glm::length(r) + 0.001f);
@@ -263,8 +265,8 @@ float ClothSim::sph_density_estimator(unsigned int pi) {
 	for (int j = 0; j < neighbors_of_pi.size(); j++) {
 		unsigned int neighbor_index = neighbors_of_pi[j];
 		float mass = 1.0f/m_vertices.inv_mass(pi);
-		glm::vec3 p_i = m_vertices.pos(pi);
-		glm::vec3 p_j = m_vertices.pos(neighbor_index);
+		glm::vec3 p_i = m_vertices.predicted_pos(pi);
+		glm::vec3 p_j = m_vertices.predicted_pos(neighbor_index);
 		glm::vec3 r = p_i - p_j;
 		density += mass * W(r, h);
 	}
@@ -272,39 +274,71 @@ float ClothSim::sph_density_estimator(unsigned int pi) {
 }
 
 glm::vec3 ClothSim::gradient_C(unsigned int i, unsigned int k) {
-	glm::vec3 pi = m_vertices.pos(i);
+	glm::vec3 pi = m_vertices.predicted_pos(i);
 	glm::vec3 pj;
 	glm::vec3 gradientC = glm::vec3(0.0f);
 	glm::vec3 sum = glm::vec3(0.0f);
+	float sum_grad = 0.0f;
 	std::vector<unsigned int> neighbors = m_neighbors.at(i);
 	for (int j = 0; j < neighbors.size(); j++) {
 		unsigned int j_indx = neighbors.at(j);
-		pj = m_vertices.pos(j_indx);
+		pj = m_vertices.predicted_pos(j_indx);
 		if (k == i) {
-			sum += W_spiky(pi-pj, h);
-		} else if (k == j) {
-			sum -= -1.0f*W_spiky(pi - pj, h);
+			sum += W_spiky(pi-pj, m_radius);
+		} else if (k == j_indx) {
+			//continue;
+			sum -= W_spiky(pi-pj, m_radius);
 		}
 	}
 	gradientC += sum/rest_density;
 	return gradientC;
 }
 
-void ClothSim::calculate_lambda(unsigned int i) {
-	float density = sph_density_estimator(i);
-	float Ci = density / rest_density - 1.0f;
-	float sumk = 0.0f;
-	glm::vec3 grad_c = glm::vec3(0.0f);
-	for (int k = 0; k < m_vertices.size(); k++) {
-		grad_c = gradient_C(i, k);
-		float l = 0;
-		if (grad_c != glm::vec3(0,0,0))
-			l = glm::length(grad_c);
-		sumk += l*l;
+void ClothSim::compute_position() {
+
+	FOR_EACH_PARTICLE {
+		glm::vec3 pj = m_vertices.predicted_pos(i);
+		float li = m_lambdas[i];
+		glm::vec3 dp = glm::vec3(0.0f);
+		for (int j = 0; j < m_neighbors[i].size(); j++) {
+			unsigned int neighbor_index = m_neighbors[i].at(j);
+			glm::vec3 pi = m_vertices.pos(i);
+			glm::vec3 pj = m_vertices.pos(neighbor_index);
+			glm::vec3 w = W_spiky(pi - pj, h);
+			dp += (m_lambdas.at(i) + m_lambdas.at(neighbor_index)) * w;
+		}
+		dp *= 1.0f / rest_density;
+		//printf("dp = (%f, %f, %f)\n", dp[0], dp[1], dp[2]);
+		m_vertices.predicted_pos(i) += dp;
 	}
-	if (sumk == 0.0f) sumk = 1.0f;
-	
-	m_lambdas.at(i) = Ci/(sumk + epsilon);
+
+}
+
+void ClothSim::compute_lambda() {
+	/* Calculate C_i */
+	FOR_EACH_PARTICLE {
+		m_densities[i] = sph_density_estimator(i);
+		m_C[i] = m_densities[i]/rest_density - 1.0f;
+		//m_lambdas[i] = m_C[i];
+	}
+
+	/* Calculate gradient of C_i */
+	FOR_EACH_PARTICLE {
+		float Ci = m_C[i];
+		float sumk = 0.0f;
+		glm::vec3 grad_c = glm::vec3(0.0f);
+		for (int k = 0; k < m_vertices.size(); k++) {
+			grad_c = gradient_C(i, k);
+			float l = 0;
+			if (grad_c != glm::vec3(0,0,0))
+				l = glm::length(grad_c);
+			sumk += l*l;
+		}
+		sumk += epsilon;
+		m_lambdas.at(i) = -1.0f * Ci/sumk;
+		
+		//printf("lambda = %f\n", m_lambdas.at(i));
+	}
 }
 
 void ClothSim::generate_internal_constraints()
@@ -312,24 +346,16 @@ void ClothSim::generate_internal_constraints()
 	unsigned int i, k, index;
 
 	/* Calculate lambda i (Line 10) */
-	for (i = 0; i < m_vertices.size(); i++) {
-		calculate_lambda(i);
-	}
-
-	for (i = 0; i < m_vertices.size(); i++) {
-		float density_i = sph_density_estimator(i);
-		Constraint* density_constraint = new DensityConstraint(&m_vertices, &m_neighbors, m_lambdas, i, h);
-		m_constraints_int.push_back(density_constraint);
-	}
-
+	compute_lambda();
+	compute_position();
 }
 
 void ClothSim::apply_external_force(const glm::vec3& force, float dt)
-{// apply external force to cloth.
-    unsigned int size = m_vertices.size();
-    for(unsigned int i = 0; i < size; ++i)
-    {
-		m_vertices.vel(i) = m_vertices.vel(i) + dt*m_vertices.inv_mass(i)*force;
+{
+	FOR_EACH_PARTICLE {
+		glm::vec3 a = m_vertices.inv_mass(i)*force;
+		m_vertices.vel(i) = m_vertices.vel(i) + a*dt;
+		//printf("a = %f, %f, %f\n", a[0], a[1], a[2]);
     }
 }
 
@@ -384,68 +410,24 @@ void ClothSim::compute_predicted_position(float dt)
         m_vertices.predicted_pos(i) = m_vertices.pos(i) + dt*m_vertices.vel(i);
 		resolve_box_collision(i, dt);
     }
-
-	//for (int i = 0; i < m_vertices.size(); i++) {
-	//	for (int j = 0; j < m_vertices.size(); j++) {
-	//		resolve_particle_collision(i, j, dt);
-	//	}
-	//}
 }
 
 void ClothSim::find_neighboring_particles(){
 	unsigned int i, j, size;
     size = m_vertices.size();
 	glm::vec3 p1, p2;
-	float radius = 0.5f;
     for(i = 0; i < size; ++i) {
         p1 = m_vertices.pos(i);
 		std::vector<unsigned int> p1_neighbors = m_neighbors.at(i);
 		p1_neighbors.clear();
 		for (j = 0; j < size; ++j) {
 			p2 = m_vertices.pos(j);
-			if (glm::distance(p1, p2) <= radius && i != j) {
+			if (glm::distance(p1, p2) <= m_radius && i != j) {
 				p1_neighbors.push_back(j);
 			}
 		}
 		m_neighbors.at(i) = p1_neighbors;
 	}
-}
-
-bool ClothSim::detect_particle_collision(int i, int j, float dt) {
-	if (i == j) return false;
-	glm::vec3 pi = m_vertices.predicted_pos(i);
-	glm::vec3 pj = m_vertices.predicted_pos(j);
-	glm::vec3 norm, reflected_dir;
-	glm::vec3 vel = m_vertices.vel(i);
-
-	float dist_btwn_centers = glm::abs(glm::dot(pi, pj));
-	float sum_radii = m_radius*2;
-
-	if (dist_btwn_centers <= sum_radii) {
-		return true;
-	} else {
-		return false;
-	}
-}
-
-void ClothSim::resolve_particle_collision(int i, int j, float dt) {
-	bool collision = detect_particle_collision(i, j, dt);
-	glm::vec3 norm, v, vn, vt, newpos, newvel;
-	glm::vec3 pi = m_vertices.pos(i);
-	if (collision) {
-		v = m_vertices.vel(i);
-		norm = glm::normalize(m_vertices.pos(j) - m_vertices.pos(i));
-		vn = glm::dot(v, norm) * norm;
-		vt = v - vn;
-		newvel = friction*vt + restitution*vn;
-		newpos = pi + m_vertices.vel(i)*dt;
-
-		m_vertices.vel(i) = newvel;
-		m_vertices.predicted_pos(i) = newpos;
-	} else {
-		return;
-	}
-
 }
 
 void ClothSim::resolve_box_collision(int i, float dt) {
@@ -454,32 +436,34 @@ void ClothSim::resolve_box_collision(int i, float dt) {
 	glm::vec3 dim = glm::vec3(5,5,5);
 	glm::vec3 norm, reflected_dir;
 
-	if (pi.x < -dim.x) {
+	if (pi.x <= -dim.x) {
 		norm = glm::vec3(0,1,0);
 		reflected_dir = glm::reflect(vel, norm);
 		vel.x = restitution*reflected_dir.x;
 	}
-	else if (pi.x > dim.x) {
+	else if (pi.x >= dim.x) {
 		norm = glm::vec3(0,-1,0);
 		reflected_dir = glm::reflect(vel, norm);
 		vel.x = restitution*reflected_dir.x;
 	}
-	else if (pi.y < 0) {
+	else if (pi.y <= 0) {
 		norm = glm::vec3(0,1,0);
 		reflected_dir = glm::reflect(vel, norm);
 		vel.y = restitution*reflected_dir.y;
 	}
-	else if (pi.z < -dim.z) {
+	else if (pi.z <= -dim.z) {
 		norm = glm::vec3(0,0,1);
 		reflected_dir = glm::reflect(vel, norm);
 		vel.z = restitution*reflected_dir.z;
 	}
-	else if (pi.z > dim.z) {
+	else if (pi.z >= dim.z) {
 		norm = glm::vec3(0,0,-1);
 		reflected_dir = glm::reflect(vel, norm);
 		vel.z = restitution*reflected_dir.z;
 	}
-	else return;
+	else {
+		return;
+	}
 
 	m_vertices.vel(i) = vel;
 	glm::vec3 new_pos = pi + vel*dt;
@@ -488,25 +472,13 @@ void ClothSim::resolve_box_collision(int i, float dt) {
 
 void ClothSim::resolve_constriants()
 {// resolve all the constraints, including both internal and external constraints.
-    bool all_solved = true;
-    int i, size;
     for(unsigned int n = 0; n < m_solver_iterations; ++n) {
-        // solve all the internal constraints.
 		generate_internal_constraints();
-        size = m_constraints_int.size();
-		for (i = 0; i  < size; i++) {
-			all_solved &= m_constraints_int[i]->project_constraint();
-		}
-        if(all_solved)
-            break;
     }
-    m_vertices.unlock_pos_all();
 }
 
 void ClothSim::integration(float dt)
 {// integration the position based on optimized prediction, and determine velocity based on position. (12-15)
-    unsigned int size = m_vertices.size();
-    float inv_dt = 1.0f / dt;
     FOR_EACH_PARTICLE {
         m_vertices.vel(i) = (m_vertices.predicted_pos(i)-m_vertices.pos(i))/dt;
 		m_vertices.pos(i) = m_vertices.predicted_pos(i);

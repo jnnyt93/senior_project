@@ -44,7 +44,9 @@ protected:
 	// neightbors of each of the particles.
 	std::vector<std::vector<unsigned int>> m_neighbors;
 	std::vector<float> m_lambdas;
-
+	std::vector<float> m_densities;
+	std::vector<float> m_C;
+	std::vector<float> m_gradC;
     // internal and external constraints.
     std::vector<Constraint*> m_constraints_int;
     std::vector<CollisionConstraint> m_constraints_ext;
@@ -83,15 +85,14 @@ private:
 
 	void find_neighboring_particles();
 	float sph_density_estimator(unsigned int pi);
-	void calculate_lambda(unsigned int i);
+	void compute_lambda();
 	glm::vec3 W_spiky(glm::vec3 r, float h);
 	glm::vec3 ClothSim::gradient_C(unsigned int i, unsigned int k);
 	void sphere_init_visualization(glm::vec3 m_center);
 	float m_radius;
 
 	void resolve_box_collision(int i, float dt);
-	void resolve_particle_collision(int i, int j, float dt);
-	bool detect_particle_collision(int i, int j, float dt);
+	void compute_position();
 	float h; //smoothing radius
 	float rest_density;
 	float epsilon;
