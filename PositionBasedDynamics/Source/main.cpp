@@ -9,7 +9,7 @@ int window_width = 1024;
 int window_height = 768;
 
 //----------State Control----------//
-bool pause = false;
+bool pause = true;
 bool record = false;
 bool flip_draw_mode = false;
 
@@ -314,7 +314,7 @@ int main(int argc, char** argv)
     // TODO: change here if you want to use a smaller iteration number.
     ClothSim cloth_sim(1);
     // TODO: change here if you want to modify the dimension.
-    cloth_sim.initialize(3, 3, 3, glm::vec3(-2.5f, 0.5f, -2.5f), glm::vec3(3.5f, 3.0f, 3.5f));
+    cloth_sim.initialize(3, 3, 3, glm::vec3(-1.5f, 0.5f, 5.5f), glm::vec3(1.5f, 3.0f, 4.5f));
 	
 
     lastTime = glfwGetTime();

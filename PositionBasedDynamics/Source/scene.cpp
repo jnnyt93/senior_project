@@ -158,7 +158,7 @@ void Scene::Box::init_visualization()
 	unsigned int num_verts_per_tri = 3;
 	unsigned int num_tris_per_face = 2;
 
-	dim = glm::vec3(2,2,2);
+	dim = glm::vec3(2,2,6);
 	center = glm::vec3(0,0,0);
 
 	// bottom

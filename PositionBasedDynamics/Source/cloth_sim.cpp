@@ -44,8 +44,8 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 	rest_density = 1000.0f;
 	epsilon = 0.01f;
 	friction = 0.98;
-	restitution = 1.5f;
-	m_radius = 1.0f;
+	restitution = 0.7f;
+	m_radius = 0.3f;
     m_dimx = dim_x;
 	m_dimy = dim_y;
     m_dimz = dim_z;
@@ -63,6 +63,7 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 	m_densities.resize(m_dimx * m_dimy * m_dimz);
 	m_C.resize(m_dimx * m_dimy * m_dimz);
 	m_gradC.resize(m_dimx * m_dimy * m_dimz);
+	contact_box.resize(m_dimx * m_dimy * m_dimz);
 	// Assign initial position, velocity and mass to all the vertices.
 	unsigned int i, k, j, index;
 	index = 0;
@@ -70,7 +71,7 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 	for(i = 0; i < m_dimx; ++i) {
 		for (j = 0; j < dim_y; ++j) {
 			for(k = 0; k < m_dimz; ++k) {
-				if (j % 2 == 0) d = -d;
+				//if (j % 2 == 0) d = -d;
 				m_vertices.pos(index) = glm::vec3(delta.x * i + cloth_min.x + d, delta.y * j + cloth_min.y + d, delta.z * k + cloth_min.z - d);
 				std::cout << m_vertices.pos(index)[0] << ", " << m_vertices.pos(index)[1] << ", " << m_vertices.pos(index)[2] << std::endl;
 				m_vertices.vel(index) = glm::vec3(0.0f);
@@ -80,6 +81,7 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 				m_densities.at(index) = 0.0f;
 				m_C.at(index) = 0.0f;
 				m_gradC.at(index) = 0.0f;
+				contact_box.at(i) = false;
 				index++;
 			}
 		}
@@ -88,6 +90,7 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 
 
 }
+
 
 void ClothSim::sphere_init_visualization(glm::vec3 m_center)
 {
@@ -185,6 +188,7 @@ void ClothSim::update(const Scene* const scene, float dt)
     compute_predicted_position(dt);
 	find_neighboring_particles();
     resolve_constriants();
+	resolve_box_collision(dt);
     integration(dt);
     update_velocity(dt);
     //clean_collision_constraints();
@@ -286,7 +290,6 @@ glm::vec3 ClothSim::gradient_C(unsigned int i, unsigned int k) {
 		if (k == i) {
 			sum += W_spiky(pi-pj, m_radius);
 		} else if (k == j_indx) {
-			//continue;
 			sum -= W_spiky(pi-pj, m_radius);
 		}
 	}
@@ -311,6 +314,7 @@ void ClothSim::compute_position() {
 		//printf("dp = (%f, %f, %f)\n", dp[0], dp[1], dp[2]);
 		m_vertices.predicted_pos(i) += dp;
 	}
+
 
 }
 
@@ -353,6 +357,7 @@ void ClothSim::generate_internal_constraints()
 void ClothSim::apply_external_force(const glm::vec3& force, float dt)
 {
 	FOR_EACH_PARTICLE {
+		if (m_vertices.pos(i).y <= 0) continue;
 		glm::vec3 a = m_vertices.inv_mass(i)*force;
 		m_vertices.vel(i) = m_vertices.vel(i) + a*dt;
 		//printf("a = %f, %f, %f\n", a[0], a[1], a[2]);
@@ -408,7 +413,6 @@ void ClothSim::compute_predicted_position(float dt)
 {
     FOR_EACH_PARTICLE {
         m_vertices.predicted_pos(i) = m_vertices.pos(i) + dt*m_vertices.vel(i);
-		resolve_box_collision(i, dt);
     }
 }
 
@@ -430,44 +434,44 @@ void ClothSim::find_neighboring_particles(){
 	}
 }
 
-void ClothSim::resolve_box_collision(int i, float dt) {
-	glm::vec3 pi = m_vertices.predicted_pos(i);
-	glm::vec3 vel = m_vertices.vel(i);
-	glm::vec3 dim = glm::vec3(5,5,5);
-	glm::vec3 norm, reflected_dir;
+void ClothSim::resolve_box_collision(float dt) {
+	FOR_EACH_PARTICLE {
+		glm::vec3 pi = m_vertices.predicted_pos(i);
+		glm::vec3 vel = m_vertices.vel(i);
+		glm::vec3 dim = glm::vec3(2,2,6);
+		glm::vec3 norm, reflected_dir;
 
-	if (pi.x <= -dim.x) {
-		norm = glm::vec3(0,1,0);
-		reflected_dir = glm::reflect(vel, norm);
-		vel.x = restitution*reflected_dir.x;
-	}
-	else if (pi.x >= dim.x) {
-		norm = glm::vec3(0,-1,0);
-		reflected_dir = glm::reflect(vel, norm);
-		vel.x = restitution*reflected_dir.x;
-	}
-	else if (pi.y <= 0) {
-		norm = glm::vec3(0,1,0);
-		reflected_dir = glm::reflect(vel, norm);
-		vel.y = restitution*reflected_dir.y;
-	}
-	else if (pi.z <= -dim.z) {
-		norm = glm::vec3(0,0,1);
-		reflected_dir = glm::reflect(vel, norm);
-		vel.z = restitution*reflected_dir.z;
-	}
-	else if (pi.z >= dim.z) {
-		norm = glm::vec3(0,0,-1);
-		reflected_dir = glm::reflect(vel, norm);
-		vel.z = restitution*reflected_dir.z;
-	}
-	else {
-		return;
-	}
+		if (pi.x <= -dim.x) {
+			norm = glm::vec3(0,1,0);
+			reflected_dir = glm::reflect(vel, norm);
+			vel.x = restitution*reflected_dir.x;
+		}
+		else if (pi.x >= dim.x) {
+			norm = glm::vec3(0,-1,0);
+			reflected_dir = glm::reflect(vel, norm);
+			vel.x = restitution*reflected_dir.x;
+		}
+		if (pi.y <= 0) {
+			norm = glm::vec3(0,1,0);
+			reflected_dir = glm::reflect(vel, norm);
+			vel.y = restitution*reflected_dir.y;
+			printf("vel before = (%f, %f, %f),  vel after = (%f, %f, %f))\n", m_vertices.vel(i).x, m_vertices.vel(i).y, m_vertices.vel(i).z, vel[0], vel[1], vel[2]);
+		}
+		if (pi.z <= -dim.z) {
+			norm = glm::vec3(0,0,1);
+			reflected_dir = glm::reflect(vel, norm);
+			vel.z = restitution*reflected_dir.z;
+		}
+		if (pi.z >= dim.z) {
+			norm = glm::vec3(0,0,-1);
+			reflected_dir = glm::reflect(vel, norm);
+			vel.z = restitution*reflected_dir.z;
+		}
 
-	m_vertices.vel(i) = vel;
-	glm::vec3 new_pos = pi + vel*dt;
-	m_vertices.predicted_pos(i) = pi + vel*dt;
+		m_vertices.vel(i) = vel;
+		glm::vec3 new_pos = pi + vel*dt;
+		m_vertices.predicted_pos(i) = new_pos;
+	}
 }
 
 void ClothSim::resolve_constriants()
@@ -480,7 +484,7 @@ void ClothSim::resolve_constriants()
 void ClothSim::integration(float dt)
 {// integration the position based on optimized prediction, and determine velocity based on position. (12-15)
     FOR_EACH_PARTICLE {
-        m_vertices.vel(i) = (m_vertices.predicted_pos(i)-m_vertices.pos(i))/dt;
+		m_vertices.vel(i) = (m_vertices.predicted_pos(i)-m_vertices.pos(i))/dt;
 		m_vertices.pos(i) = m_vertices.predicted_pos(i);
     }
 }
@@ -488,7 +492,7 @@ void ClothSim::integration(float dt)
 void ClothSim::update_velocity(float dt)
 {
 	FOR_EACH_PARTICLE {
-		m_vertices.vel(i) = (m_vertices.pos(i) - m_vertices.predicted_pos(i)) / dt;
+		m_vertices.vel(i) = (m_vertices.pos(i)-m_vertices.predicted_pos(i)) / dt;
 	}
 }
 

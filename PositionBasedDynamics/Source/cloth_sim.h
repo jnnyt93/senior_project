@@ -47,6 +47,7 @@ protected:
 	std::vector<float> m_densities;
 	std::vector<float> m_C;
 	std::vector<float> m_gradC;
+	std::vector<bool> contact_box;
     // internal and external constraints.
     std::vector<Constraint*> m_constraints_int;
     std::vector<CollisionConstraint> m_constraints_ext;
@@ -91,7 +92,7 @@ private:
 	void sphere_init_visualization(glm::vec3 m_center);
 	float m_radius;
 
-	void resolve_box_collision(int i, float dt);
+	void resolve_box_collision(float dt);
 	void compute_position();
 	float h; //smoothing radius
 	float rest_density;
