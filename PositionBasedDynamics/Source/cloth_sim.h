@@ -47,7 +47,7 @@ protected:
 	std::vector<float> m_densities;
 	std::vector<float> m_C;
 	std::vector<float> m_gradC;
-	std::vector<bool> contact_box;
+	std::vector<glm::vec3> m_deltaP;
     // internal and external constraints.
     std::vector<Constraint*> m_constraints_int;
     std::vector<CollisionConstraint> m_constraints_ext;
@@ -93,7 +93,9 @@ private:
 	float m_radius;
 
 	void resolve_box_collision(float dt);
-	void compute_position();
+	void compute_deltaPi();
+	void update_predicted_position();
+	void update_position();
 	float h; //smoothing radius
 	float rest_density;
 	float epsilon;

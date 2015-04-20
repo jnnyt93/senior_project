@@ -153,7 +153,7 @@ void Scene::Box::init_visualization()
     m_indices.clear();
 
     glm::vec3 mat_color(0.8f);
-	unsigned int num_faces = 5;
+	unsigned int num_faces = 4;
 	unsigned int num_verts_per_face = 4;
 	unsigned int num_verts_per_tri = 3;
 	unsigned int num_tris_per_face = 2;
@@ -186,17 +186,17 @@ void Scene::Box::init_visualization()
 	m_positions.push_back(glm::vec3(-dim.x,0,-dim.z));
 
 	// front
-	m_positions.push_back(glm::vec3(dim.x,+dim.y,+dim.z));
-	m_positions.push_back(glm::vec3(dim.x,+dim.y,-dim.z));
-	m_positions.push_back(glm::vec3(dim.x,0,+dim.z));
-	m_positions.push_back(glm::vec3(dim.x,0,-dim.z));
+	//m_positions.push_back(glm::vec3(dim.x,+dim.y,+dim.z));
+	//m_positions.push_back(glm::vec3(dim.x,+dim.y,-dim.z));
+	//m_positions.push_back(glm::vec3(dim.x,0,+dim.z));
+	//m_positions.push_back(glm::vec3(dim.x,0,-dim.z));
 
 	std::vector<glm::vec3> temp_normals;
 	temp_normals.push_back(glm::vec3(0,1,0));
 	temp_normals.push_back(glm::vec3(0,0,1));
 	temp_normals.push_back(glm::vec3(0,0,-1));
 	temp_normals.push_back(glm::vec3(1,0,0));
-	temp_normals.push_back(glm::vec3(-1,0,0));
+	//temp_normals.push_back(glm::vec3(-1,0,0));
 
 	for (int i = 0; i < num_faces; i++) {
 		for (int j = 0; j < num_verts_per_face; j++) {

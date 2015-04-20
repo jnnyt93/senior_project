@@ -40,12 +40,12 @@ ClothSim::~ClothSim()
 
 void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int dim_z, const glm::vec3& cloth_min, const glm::vec3& cloth_max)
 {// initialize the cloth here. feel free to create your own initialization.
-	h = 1.0f;
+	h = 2.0f;
 	rest_density = 1000.0f;
 	epsilon = 0.01f;
 	friction = 0.98;
-	restitution = 0.7f;
-	m_radius = 0.3f;
+	restitution = 1.0f;
+	m_radius = 1.5f;
     m_dimx = dim_x;
 	m_dimy = dim_y;
     m_dimz = dim_z;
@@ -63,15 +63,15 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 	m_densities.resize(m_dimx * m_dimy * m_dimz);
 	m_C.resize(m_dimx * m_dimy * m_dimz);
 	m_gradC.resize(m_dimx * m_dimy * m_dimz);
-	contact_box.resize(m_dimx * m_dimy * m_dimz);
+	m_deltaP.resize(m_dimx * m_dimy * m_dimz);
 	// Assign initial position, velocity and mass to all the vertices.
 	unsigned int i, k, j, index;
 	index = 0;
-	float d = 0.0f;
+	float d = 0.2f;
 	for(i = 0; i < m_dimx; ++i) {
 		for (j = 0; j < dim_y; ++j) {
 			for(k = 0; k < m_dimz; ++k) {
-				//if (j % 2 == 0) d = -d;
+				if (j % 2 == 0) d = -d;
 				m_vertices.pos(index) = glm::vec3(delta.x * i + cloth_min.x + d, delta.y * j + cloth_min.y + d, delta.z * k + cloth_min.z - d);
 				std::cout << m_vertices.pos(index)[0] << ", " << m_vertices.pos(index)[1] << ", " << m_vertices.pos(index)[2] << std::endl;
 				m_vertices.vel(index) = glm::vec3(0.0f);
@@ -81,7 +81,7 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 				m_densities.at(index) = 0.0f;
 				m_C.at(index) = 0.0f;
 				m_gradC.at(index) = 0.0f;
-				contact_box.at(i) = false;
+				m_deltaP.at(index) = glm::vec3(0.0f);
 				index++;
 			}
 		}
@@ -185,13 +185,17 @@ void ClothSim::update(const Scene* const scene, float dt)
 {// update the system for a certain time step dt.
     glm::vec3 gravity(0.0f, -98.f, 0.0f);
     apply_external_force(gravity, dt);
-    compute_predicted_position(dt);
 	find_neighboring_particles();
-    resolve_constriants();
-	resolve_box_collision(dt);
-    integration(dt);
+
+	for(unsigned int n = 0; n < m_solver_iterations; ++n) {
+		compute_lambda();
+		compute_deltaPi();
+		resolve_box_collision(dt);
+		update_predicted_position();
+	}
+	
     update_velocity(dt);
-    //clean_collision_constraints();
+	update_position();
 }
 
 void ClothSim::draw(const VBO& vbos)
@@ -288,17 +292,16 @@ glm::vec3 ClothSim::gradient_C(unsigned int i, unsigned int k) {
 		unsigned int j_indx = neighbors.at(j);
 		pj = m_vertices.predicted_pos(j_indx);
 		if (k == i) {
-			sum += W_spiky(pi-pj, m_radius);
+			sum += W_spiky(pi-pj, h);
 		} else if (k == j_indx) {
-			sum -= W_spiky(pi-pj, m_radius);
+			sum -= W_spiky(pi-pj, h);
 		}
 	}
 	gradientC += sum/rest_density;
 	return gradientC;
 }
 
-void ClothSim::compute_position() {
-
+void ClothSim::compute_deltaPi() {
 	FOR_EACH_PARTICLE {
 		glm::vec3 pj = m_vertices.predicted_pos(i);
 		float li = m_lambdas[i];
@@ -311,21 +314,29 @@ void ClothSim::compute_position() {
 			dp += (m_lambdas.at(i) + m_lambdas.at(neighbor_index)) * w;
 		}
 		dp *= 1.0f / rest_density;
-		//printf("dp = (%f, %f, %f)\n", dp[0], dp[1], dp[2]);
-		m_vertices.predicted_pos(i) += dp;
+		m_deltaP[i] = dp;
 	}
+}
 
+void ClothSim::update_predicted_position() {
+	FOR_EACH_PARTICLE {
+		m_vertices.predicted_pos(i) = m_vertices.predicted_pos(i) + m_deltaP[i];
+	}
+}
 
+void ClothSim::update_position() {
+	FOR_EACH_PARTICLE {
+		m_vertices.pos(i) = m_vertices.predicted_pos(i); 
+	}
 }
 
 void ClothSim::compute_lambda() {
 	/* Calculate C_i */
 	FOR_EACH_PARTICLE {
-		m_densities[i] = sph_density_estimator(i);
-		m_C[i] = m_densities[i]/rest_density - 1.0f;
-		//m_lambdas[i] = m_C[i];
+		float density = sph_density_estimator(i);
+		m_C[i] = (density/rest_density) - 1.0f;
 	}
-
+	//printf("here\n");
 	/* Calculate gradient of C_i */
 	FOR_EACH_PARTICLE {
 		float Ci = m_C[i];
@@ -340,79 +351,15 @@ void ClothSim::compute_lambda() {
 		}
 		sumk += epsilon;
 		m_lambdas.at(i) = -1.0f * Ci/sumk;
-		
-		//printf("lambda = %f\n", m_lambdas.at(i));
 	}
-}
-
-void ClothSim::generate_internal_constraints()
-{// TODO: generate all internal constraints in this function.
-	unsigned int i, k, index;
-
-	/* Calculate lambda i (Line 10) */
-	compute_lambda();
-	compute_position();
 }
 
 void ClothSim::apply_external_force(const glm::vec3& force, float dt)
 {
 	FOR_EACH_PARTICLE {
-		if (m_vertices.pos(i).y <= 0) continue;
 		glm::vec3 a = m_vertices.inv_mass(i)*force;
 		m_vertices.vel(i) = m_vertices.vel(i) + a*dt;
-		//printf("a = %f, %f, %f\n", a[0], a[1], a[2]);
-    }
-}
-
-void ClothSim::damp_velocity(float k_damp)
-{
-    // TODO: apply damping according to chapter 3.5 in original paper.
-	unsigned int i, k, index;
-	glm::vec3 sum_xm = glm::vec3(0.f);
-	float sum_mass = 0;
-	glm::vec3 sum_vm = glm::vec3(0.f);
-	for(i = 0; i < m_dimx; ++i) {
-		for(k = 0; k < m_dimz; ++k){
-			index = m_dimz * i + k;
-			sum_xm = sum_xm + m_vertices.pos(index)/m_vertices.inv_mass(index);
-			sum_mass = sum_mass + 1.0f/m_vertices.inv_mass(index);
-			sum_vm = sum_vm + m_vertices.vel(index)/m_vertices.inv_mass(index);
-		}
-	}
-
-	glm::vec3 xcm = sum_xm / sum_mass; // (1)
-	glm::vec3 vcm = sum_vm / sum_mass; // (2)
-	glm::vec3 L = glm::vec3(0.f); // (3)
-	glm::mat3 I = glm::mat3(0.f); // (4)
-	for(i = 0; i < m_dimx; ++i) {
-		for(k = 0; k < m_dimz; ++k){
-			index = m_dimz * i + k;
-			glm::vec3 ri = m_vertices.pos(index) - xcm;
-			glm::vec3 mivi = m_vertices.vel(index)/m_vertices.inv_mass(index);
-			L = L + glm::cross(ri, mivi);
-			glm::vec3 v1 = glm::vec3(0.0f, ri[2], -ri[1]);
-			glm::vec3 v2 = glm::vec3(-ri[2], 0.0f, ri[0]);
-			glm::vec3 v3 = glm::vec3(ri[1], -ri[0], 0.0f);
-			glm::mat3 r_tilda = glm::mat3(v1,v2,v3);
-			I = I + r_tilda * glm::transpose(r_tilda) / m_vertices.inv_mass(index); 
-		}
-	}
-	glm::vec3 w = glm::inverse(I) * L; // (5)
-	for(i = 0; i < m_dimx; ++i) {
-		for(k = 0; k < m_dimz; ++k){
-			index = m_dimz * i + k;
-			glm::vec3 ri = m_vertices.pos(index) - xcm;
-			glm::vec3 vi = m_vertices.vel(index);
-			glm::vec3 delta_vi = vcm + glm::cross(w, ri) - vi; // (7)
-			m_vertices.vel(index) = vi + k_damp * delta_vi; // (8)
-		}
-	}
-}
-
-void ClothSim::compute_predicted_position(float dt)
-{
-    FOR_EACH_PARTICLE {
-        m_vertices.predicted_pos(i) = m_vertices.pos(i) + dt*m_vertices.vel(i);
+		m_vertices.predicted_pos(i) = m_vertices.pos(i) + dt*m_vertices.vel(i);
     }
 }
 
@@ -435,50 +382,45 @@ void ClothSim::find_neighboring_particles(){
 }
 
 void ClothSim::resolve_box_collision(float dt) {
+	float buffer = 0.5;
 	FOR_EACH_PARTICLE {
 		glm::vec3 pi = m_vertices.predicted_pos(i);
 		glm::vec3 vel = m_vertices.vel(i);
 		glm::vec3 dim = glm::vec3(2,2,6);
 		glm::vec3 norm, reflected_dir;
 
-		if (pi.x <= -dim.x) {
+		if (pi.x <= -dim.x + buffer) {
 			norm = glm::vec3(0,1,0);
 			reflected_dir = glm::reflect(vel, norm);
 			vel.x = restitution*reflected_dir.x;
+			m_vertices.predicted_pos(i).x = -dim.x + buffer;
 		}
-		else if (pi.x >= dim.x) {
+		else if (pi.x >= dim.x - buffer) {
 			norm = glm::vec3(0,-1,0);
 			reflected_dir = glm::reflect(vel, norm);
 			vel.x = restitution*reflected_dir.x;
+			m_vertices.predicted_pos(i).x = dim.x - buffer;
 		}
-		if (pi.y <= 0) {
+		if (pi.y <= 0 + buffer) {
 			norm = glm::vec3(0,1,0);
 			reflected_dir = glm::reflect(vel, norm);
 			vel.y = restitution*reflected_dir.y;
-			printf("vel before = (%f, %f, %f),  vel after = (%f, %f, %f))\n", m_vertices.vel(i).x, m_vertices.vel(i).y, m_vertices.vel(i).z, vel[0], vel[1], vel[2]);
+			m_vertices.predicted_pos(i).y = buffer;
 		}
-		if (pi.z <= -dim.z) {
+		if (pi.z <= -dim.z + buffer) {
 			norm = glm::vec3(0,0,1);
 			reflected_dir = glm::reflect(vel, norm);
 			vel.z = restitution*reflected_dir.z;
+			m_vertices.predicted_pos(i).z = -dim.z + buffer;
 		}
-		if (pi.z >= dim.z) {
+		if (pi.z >= dim.z - buffer) {
 			norm = glm::vec3(0,0,-1);
 			reflected_dir = glm::reflect(vel, norm);
 			vel.z = restitution*reflected_dir.z;
+			m_vertices.predicted_pos(i).z = dim.z - buffer;
 		}
-
 		m_vertices.vel(i) = vel;
-		glm::vec3 new_pos = pi + vel*dt;
-		m_vertices.predicted_pos(i) = new_pos;
 	}
-}
-
-void ClothSim::resolve_constriants()
-{// resolve all the constraints, including both internal and external constraints.
-    for(unsigned int n = 0; n < m_solver_iterations; ++n) {
-		generate_internal_constraints();
-    }
 }
 
 void ClothSim::integration(float dt)
@@ -492,7 +434,7 @@ void ClothSim::integration(float dt)
 void ClothSim::update_velocity(float dt)
 {
 	FOR_EACH_PARTICLE {
-		m_vertices.vel(i) = (m_vertices.pos(i)-m_vertices.predicted_pos(i)) / dt;
+		m_vertices.vel(i) = (m_vertices.predicted_pos(i)-m_vertices.pos(i)) / dt;
 	}
 }
 
