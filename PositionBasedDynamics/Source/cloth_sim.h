@@ -78,11 +78,10 @@ private:
 	// PBF lines 8 to 19
     void project_constraints();
 	// resolve all the constraints, both internal and external.
-    void resolve_constriants();
+    void resolve_constraints(float dt);
     // update the position and velocity.
     void integration(float dt);
     void update_velocity(float dt);
-    void clean_collision_constraints();
 
 	void find_neighboring_particles();
 	float sph_density_estimator(unsigned int pi);

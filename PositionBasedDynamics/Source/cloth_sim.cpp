@@ -60,9 +60,6 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 	m_colors.resize(m_dimx * m_dimy * m_dimz);
 	m_neighbors.resize(m_dimx * m_dimy * m_dimz);
 	m_lambdas.resize(m_dimx * m_dimy * m_dimz);
-	m_densities.resize(m_dimx * m_dimy * m_dimz);
-	m_C.resize(m_dimx * m_dimy * m_dimz);
-	m_gradC.resize(m_dimx * m_dimy * m_dimz);
 	m_deltaP.resize(m_dimx * m_dimy * m_dimz);
 	// Assign initial position, velocity and mass to all the vertices.
 	unsigned int i, k, j, index;
@@ -78,19 +75,12 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 				m_vertices.set_inv_mass(index, 1.0f);
 				m_neighbors.at(index) = std::vector<unsigned int>();
 				m_lambdas.at(index) = 0.0f;
-				m_densities.at(index) = 0.0f;
-				m_C.at(index) = 0.0f;
-				m_gradC.at(index) = 0.0f;
 				m_deltaP.at(index) = glm::vec3(0.0f);
 				index++;
 			}
 		}
 	}
-
-
-
 }
-
 
 void ClothSim::sphere_init_visualization(glm::vec3 m_center)
 {
@@ -186,14 +176,7 @@ void ClothSim::update(const Scene* const scene, float dt)
     glm::vec3 gravity(0.0f, -98.f, 0.0f);
     apply_external_force(gravity, dt);
 	find_neighboring_particles();
-
-	for(unsigned int n = 0; n < m_solver_iterations; ++n) {
-		compute_lambda();
-		compute_deltaPi();
-		resolve_box_collision(dt);
-		update_predicted_position();
-	}
-	
+	resolve_constraints(dt);
     update_velocity(dt);
 	update_position();
 }
@@ -251,9 +234,9 @@ void ClothSim::draw(const VBO& vbos)
 }
 
 /* poly6 kernal function */
-float W(glm::vec3 r, float h) {
+float W(float r, float h) {
 	float frac = 315.0f/ (64.0f * M_PI * glm::pow(h,9.0f));
-	float r2 = glm::length(r) * glm::length(r);
+	float r2 = r * r;
 	float temp = h*h - r2;
 	float temp2 = glm::pow(temp, 3.0f);
 	return frac*temp2;
@@ -276,7 +259,7 @@ float ClothSim::sph_density_estimator(unsigned int pi) {
 		glm::vec3 p_i = m_vertices.predicted_pos(pi);
 		glm::vec3 p_j = m_vertices.predicted_pos(neighbor_index);
 		glm::vec3 r = p_i - p_j;
-		density += mass * W(r, h);
+		density += mass * W(glm::length(r), h);
 	}
 	return density;
 }
@@ -311,7 +294,14 @@ void ClothSim::compute_deltaPi() {
 			glm::vec3 pi = m_vertices.pos(i);
 			glm::vec3 pj = m_vertices.pos(neighbor_index);
 			glm::vec3 w = W_spiky(pi - pj, h);
-			dp += (m_lambdas.at(i) + m_lambdas.at(neighbor_index)) * w;
+
+			// 4. Tensile Instability
+			float k = 0.1f;
+			float n = 4.0f;
+			float deltaQ = 0.2*h;
+			float s_corr = -k * glm::pow( W(glm::length(pi-pj), h) / W(deltaQ, h), n);
+
+			dp += (m_lambdas.at(i) + m_lambdas.at(neighbor_index) + s_corr) * w;
 		}
 		dp *= 1.0f / rest_density;
 		m_deltaP[i] = dp;
@@ -331,15 +321,10 @@ void ClothSim::update_position() {
 }
 
 void ClothSim::compute_lambda() {
-	/* Calculate C_i */
 	FOR_EACH_PARTICLE {
 		float density = sph_density_estimator(i);
-		m_C[i] = (density/rest_density) - 1.0f;
-	}
-	//printf("here\n");
-	/* Calculate gradient of C_i */
-	FOR_EACH_PARTICLE {
-		float Ci = m_C[i];
+		float Ci = (density/rest_density) - 1.0f;
+
 		float sumk = 0.0f;
 		glm::vec3 grad_c = glm::vec3(0.0f);
 		for (int k = 0; k < m_vertices.size(); k++) {
@@ -349,6 +334,7 @@ void ClothSim::compute_lambda() {
 				l = glm::length(grad_c);
 			sumk += l*l;
 		}
+
 		sumk += epsilon;
 		m_lambdas.at(i) = -1.0f * Ci/sumk;
 	}
@@ -367,6 +353,7 @@ void ClothSim::find_neighboring_particles(){
 	unsigned int i, j, size;
     size = m_vertices.size();
 	glm::vec3 p1, p2;
+	#pragma omp parallel for
     for(i = 0; i < size; ++i) {
         p1 = m_vertices.pos(i);
 		std::vector<unsigned int> p1_neighbors = m_neighbors.at(i);
@@ -423,14 +410,6 @@ void ClothSim::resolve_box_collision(float dt) {
 	}
 }
 
-void ClothSim::integration(float dt)
-{// integration the position based on optimized prediction, and determine velocity based on position. (12-15)
-    FOR_EACH_PARTICLE {
-		m_vertices.vel(i) = (m_vertices.predicted_pos(i)-m_vertices.pos(i))/dt;
-		m_vertices.pos(i) = m_vertices.predicted_pos(i);
-    }
-}
-
 void ClothSim::update_velocity(float dt)
 {
 	FOR_EACH_PARTICLE {
@@ -438,8 +417,12 @@ void ClothSim::update_velocity(float dt)
 	}
 }
 
-void ClothSim::clean_collision_constraints()
+void ClothSim::resolve_constraints(float dt)
 {
-    m_constraints_ext.clear();
-    m_self_collision.clear();
+	for(unsigned int n = 0; n < m_solver_iterations; ++n) {
+		compute_lambda();
+		compute_deltaPi();
+		resolve_box_collision(dt);
+		update_predicted_position();
+	}
 }
