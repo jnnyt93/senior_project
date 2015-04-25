@@ -1,47 +1,37 @@
-﻿Build started 2/7/2015 1:33:31 PM.
-     1>Project "c:\Users\jenny trang\documents\visual studio 2010\Projects\PositionBasedDynamics\PositionBasedDynamics\PositionBasedDynamics.vcxproj" on node 2 (build target(s)).
+﻿Build started 4/25/2015 3:33:24 AM.
+     1>Project "C:\Users\Jenny\Documents\Visual Studio 2010\Projects\senior_project\PositionBasedDynamics\PositionBasedDynamics.vcxproj" on node 2 (build target(s)).
      1>InitializeBuildStatus:
-         Creating "Debug\PositionBasedDynamics.unsuccessfulbuild" because "AlwaysCreate" was specified.
+         Touching "Debug\PositionBasedDynamics.unsuccessfulbuild".
        ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /I../tinyxml /I../glm /I../glew/include /I../glfw/include /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt Source\cloth_sim.cpp Source\constraint.cpp Source\main.cpp Source\scene.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.5\include" /I"C:/ProgramData/NVIDIA Corporation/CUDA Samples/v5.5/common/inc" /I../shared/glew/includes /I../shared/freeglut/includes /I../tinyxml /I../glm /I../glew/include /I../glfw/include /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt Source\cloth_sim.cpp Source\constraint.cpp Source\main.cpp Source\scene.cpp
          scene.cpp
-     1>c:\users\jenny trang\documents\visual studio 2010\projects\positionbaseddynamics\positionbaseddynamics\source\scene.cpp(380): warning C4244: 'argument' : conversion from 'double' to 'float', possible loss of data
-     1>c:\users\jenny trang\documents\visual studio 2010\projects\positionbaseddynamics\positionbaseddynamics\source\scene.cpp(397): warning C4244: 'argument' : conversion from 'double' to 'float', possible loss of data
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\scene.cpp(201): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\scene.cpp(202): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\scene.cpp(209): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\scene.cpp(210): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\scene.cpp(211): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\scene.cpp(489): warning C4244: 'argument' : conversion from 'double' to 'float', possible loss of data
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\scene.cpp(515): warning C4244: 'argument' : conversion from 'double' to 'float', possible loss of data
          main.cpp
-     1>c:\users\jenny trang\documents\visual studio 2010\projects\positionbaseddynamics\positionbaseddynamics\source\main.cpp(344): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-                 c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(371) : see declaration of 'sprintf'
-     1>c:\users\jenny trang\documents\visual studio 2010\projects\positionbaseddynamics\positionbaseddynamics\source\main.cpp(365): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-                 c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+         Note: including lib: glut32.lib
+         
+     1>c:\program files\nvidia gpu computing toolkit\cuda\v5.5\include\thrust\detail\config\debug.h(21): fatal error C1017: invalid integer constant expression
          constraint.cpp
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\constraint.cpp(76): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\constraint.cpp(91): warning C4018: '<' : signed/unsigned mismatch
          cloth_sim.cpp
-     1>c:\users\jenny trang\documents\visual studio 2010\projects\positionbaseddynamics\positionbaseddynamics\source\cloth_sim.cpp(328): warning C4101: 'phi' : unreferenced local variable
-     1>c:\users\jenny trang\documents\visual studio 2010\projects\positionbaseddynamics\positionbaseddynamics\source\cloth_sim.cpp(489): warning C4101: 'norm_fraction' : unreferenced local variable
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\cloth_sim.cpp(46): warning C4305: '=' : truncation from 'double' to 'float'
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\cloth_sim.cpp(191): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\cloth_sim.cpp(238): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\cloth_sim.cpp(246): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\cloth_sim.cpp(256): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\cloth_sim.cpp(274): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\cloth_sim.cpp(292): warning C4018: '<' : signed/unsigned mismatch
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\cloth_sim.cpp(301): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+     1>c:\users\jenny\documents\visual studio 2010\projects\senior_project\positionbaseddynamics\source\cloth_sim.cpp(330): warning C4018: '<' : signed/unsigned mismatch
          Generating Code...
-         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /I../tinyxml /I../glm /I../glew/include /I../glfw/include /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TC /analyze- /errorReport:prompt Source\stb_image.c Source\stb_image_write.c
-         stb_image_write.c
-         stb_image.c
-         Generating Code...
-       ManifestResourceCompile:
-         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /nologo /fo"Debug\PositionBasedDynamics.exe.embed.manifest.res" Debug\PositionBasedDynamics_manifest.rc 
-       Link:
-         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"c:\users\jenny trang\documents\visual studio 2010\Projects\PositionBasedDynamics\Debug\PositionBasedDynamics.exe" /INCREMENTAL /NOLOGO /LIBPATH:../glew/lib /LIBPATH:../glfw/lib /LIBPATH:../tinyxml tinyxmld_STL.lib glew32.lib glu32.lib opengl32.lib glfw.lib glfwdll.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\PositionBasedDynamics.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"c:\users\jenny trang\documents\visual studio 2010\Projects\PositionBasedDynamics\Debug\PositionBasedDynamics.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"c:\users\jenny trang\documents\visual studio 2010\Projects\PositionBasedDynamics\Debug\PositionBasedDynamics.lib" /MACHINE:X86 Debug\PositionBasedDynamics.exe.embed.manifest.res
-         Debug\cloth_sim.obj
-         Debug\constraint.obj
-         Debug\main.obj
-         Debug\scene.obj
-         Debug\stb_image.obj
-         Debug\stb_image_write.obj
-       Manifest:
-         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /out:"Debug\PositionBasedDynamics.exe.embed.manifest" /manifest Debug\PositionBasedDynamics.exe.intermediate.manifest
-         All outputs are up-to-date.
-       LinkEmbedManifest:
-         All outputs are up-to-date.
-         PositionBasedDynamics.vcxproj -> c:\users\jenny trang\documents\visual studio 2010\Projects\PositionBasedDynamics\Debug\PositionBasedDynamics.exe
-       FinalizeBuildStatus:
-         Deleting file "Debug\PositionBasedDynamics.unsuccessfulbuild".
-         Touching "Debug\PositionBasedDynamics.lastbuildstate".
-     1>Done Building Project "c:\Users\jenny trang\documents\visual studio 2010\Projects\PositionBasedDynamics\PositionBasedDynamics\PositionBasedDynamics.vcxproj" (build target(s)).
+     1>Done Building Project "C:\Users\Jenny\Documents\Visual Studio 2010\Projects\senior_project\PositionBasedDynamics\PositionBasedDynamics.vcxproj" (build target(s)) -- FAILED.
 
-Build succeeded.
+Build FAILED.
 
-Time Elapsed 00:00:03.58
+Time Elapsed 00:00:02.70

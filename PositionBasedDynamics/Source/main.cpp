@@ -4,6 +4,7 @@
 #include "cloth_sim.h"
 #include "scene.h"
 #include "stb_image_write.h"
+#include "main.h"
 
 int window_width = 1024;
 int window_height = 768;

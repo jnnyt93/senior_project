@@ -1,0 +1,23 @@
+﻿Build started 4/25/2015 3:25:02 AM.
+     1>Project "C:\Users\Jenny\Downloads\Project3-Simulation-master\Project3-Simulation-master\Project3-Simulation-master\Part1\PROJ_WIN\Project3\Project3.vcxproj" on node 2 (build target(s)).
+     1>InitializeBuildStatus:
+         Creating "Debug\Project3.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       AddCudaCompileDeps:
+       Skipping target "AddCudaCompileDeps" because all output files are up-to-date with respect to the input files.
+       AddCudaCompilePropsDeps:
+       Skipping target "AddCudaCompilePropsDeps" because all output files are up-to-date with respect to the input files.
+       CudaBuild:
+       Skipping target "CudaBuild" because all output files are up-to-date with respect to the input files.
+       ClCompile:
+         All outputs are up-to-date.
+       Link:
+         All outputs are up-to-date.
+         Project3.vcxproj -> C:\Users\Jenny\Downloads\Project3-Simulation-master\Project3-Simulation-master\Project3-Simulation-master\Part1\PROJ_WIN\Debug\Project3.exe
+       FinalizeBuildStatus:
+         Deleting file "Debug\Project3.unsuccessfulbuild".
+         Touching "Debug\Project3.lastbuildstate".
+     1>Done Building Project "C:\Users\Jenny\Downloads\Project3-Simulation-master\Project3-Simulation-master\Project3-Simulation-master\Part1\PROJ_WIN\Project3\Project3.vcxproj" (build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:00.11
