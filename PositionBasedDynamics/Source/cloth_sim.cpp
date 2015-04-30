@@ -43,12 +43,15 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 	h = 2.0f;
 	rest_density = 1000.0f;
 	epsilon = 0.01f;
-	friction = 0.98;
+	friction = 0.98f;
 	restitution = 1.0f;
 	m_radius = 1.5f;
     m_dimx = dim_x;
 	m_dimy = dim_y;
     m_dimz = dim_z;
+
+	glm::vec3 particle_color(0.25f, 0.65f, 0.85f);
+
     glm::vec3 delta;
     delta.x = (cloth_max.x - cloth_min.x) / (float)(m_dimx - 1);
     delta.y = (cloth_max.y - cloth_min.y) / (float)(m_dimy - 1);
@@ -73,103 +76,17 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 				std::cout << m_vertices.pos(index)[0] << ", " << m_vertices.pos(index)[1] << ", " << m_vertices.pos(index)[2] << std::endl;
 				m_vertices.vel(index) = glm::vec3(0.0f);
 				m_vertices.set_inv_mass(index, 1.0f);
-				m_neighbors.at(index) = std::vector<unsigned int>();
-				m_lambdas.at(index) = 0.0f;
-				m_deltaP.at(index) = glm::vec3(0.0f);
+				m_neighbors[index] = std::vector<unsigned int>();
+				m_lambdas[index] = 0.0f;
+				m_colors[index] = particle_color;
+				m_deltaP[index] = glm::vec3(0.0f);
+				m_normals[index] = glm::vec3(1,0,0);
 				index++;
 			}
 		}
 	}
 }
 
-void ClothSim::sphere_init_visualization(glm::vec3 m_center)
-{
-
-    glm::vec3 mat_color(0.6f);
-    unsigned int slice = 24, stack = 10;
-
-    glm::vec3 tnormal(0.0f, 1.0f, 0.0f), tpos;
-	tpos = m_center + m_radius * tnormal;
-
-    m_positions.push_back(tpos);
-    m_normals.push_back(tnormal);
-    m_colors.push_back(mat_color);
-
-	float theta_z, theta_y, sin_z;
-    float delta_y = 360.0f / slice, delta_z = 180.0f / stack;
-	//loop over the sphere
-	for(theta_z = delta_z; theta_z < 179.99f; theta_z += delta_z)
-	{
-		for(theta_y = 0.0f; theta_y < 359.99f; theta_y += delta_y)
-		{
-			sin_z = sin(glm::radians(theta_z));
-			
-            tnormal.x = sin_z * cos(glm::radians(theta_y));
-			tnormal.y = cos(glm::radians(theta_z));
-			tnormal.z = -sin_z * sin(glm::radians(theta_y));
-
-			tpos = m_center + m_radius * tnormal;
-
-            m_positions.push_back(tpos);
-            m_normals.push_back(tnormal);
-            m_colors.push_back(mat_color);
-		}
-	}
-	tnormal = glm::vec3(0.0f, -1.0f, 0.0f);
-    tpos = m_center + m_radius * tnormal;
-
-    m_positions.push_back(tpos);
-    m_normals.push_back(tnormal);
-    m_colors.push_back(mat_color);
-
-	//indices
-	unsigned int j = 0, k = 0;
-	for(j = 0; j < slice - 1; ++j)
-	{
-		m_indices.push_back(0);
-		m_indices.push_back(j + 1);
-		m_indices.push_back(j + 2);
-	}
-	m_indices.push_back(0);
-	m_indices.push_back(slice);
-	m_indices.push_back(1);
-
-	for(j = 0; j < stack - 2; ++j)
-	{
-		for(k = 1 + slice * j; k < slice * (j + 1); ++k)
-		{
-			m_indices.push_back(k);
-			m_indices.push_back(k + slice);
-			m_indices.push_back(k + slice + 1);
-
-			m_indices.push_back(k);
-			m_indices.push_back(k + slice + 1);
-			m_indices.push_back(k + 1);
-		}
-		m_indices.push_back(k);
-		m_indices.push_back(k + slice);
-		m_indices.push_back(k + 1);
-
-		m_indices.push_back(k);
-		m_indices.push_back(k + 1);
-		m_indices.push_back(k + 1 - slice);
-	}
-
-    unsigned int bottom_id = (stack - 1) * slice + 1;
-    unsigned int offset = bottom_id - slice;
-	for(j = 0; j < slice - 1; ++j)
-	{
-		m_indices.push_back(j + offset);
-		m_indices.push_back(bottom_id);
-		m_indices.push_back(j + offset + 1);
-	}
-	m_indices.push_back(bottom_id - 1);
-	m_indices.push_back(bottom_id);
-	m_indices.push_back(offset);
-
-	if(m_indices.size() != 6 * (stack - 1) * slice)
-		printf("indices number not correct!\n");
-}
 
 void ClothSim::update(const Scene* const scene, float dt)
 {// update the system for a certain time step dt.
@@ -185,8 +102,10 @@ void ClothSim::draw(const VBO& vbos)
 {// visualize the cloth on the screen.
 	//clear color and depth buffer 
     
-    unsigned int size = m_vertices.size();
+    glPolygonMode(GL_FRONT_AND_BACK, (m_draw_wire ? GL_LINE : GL_FILL));
 
+    unsigned int size = m_vertices.size();
+    //unsigned int element_num = m_triangle_list.size();
     // position
     glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
     glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_vertices.pos(0), GL_DYNAMIC_DRAW);
@@ -210,7 +129,7 @@ void ClothSim::draw(const VBO& vbos)
     glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbos.m_ibo);
     glDrawArrays(GL_POINTS, 0, size);
 
 	glEnable(GL_PROGRAM_POINT_SIZE);

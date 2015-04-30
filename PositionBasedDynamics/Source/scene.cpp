@@ -61,7 +61,7 @@ void Scene::Plane::init_visualization()
     m_normals.clear();
     m_indices.clear();
 
-    glm::vec3 mat_color(0.6f);
+    glm::vec3 mat_color(17.f/255, 83.f/255, 128.f/255);
 
 	m_positions.push_back(glm::vec3(20,0,20));
 	m_positions.push_back(glm::vec3(20,0,-20));
@@ -152,7 +152,7 @@ void Scene::Box::init_visualization()
     m_normals.clear();
     m_indices.clear();
 
-    glm::vec3 mat_color(0.8f);
+    glm::vec3 mat_color(17.f/255, 83.f/255, 128.f/255);
 	unsigned int num_faces = 4;
 	unsigned int num_verts_per_face = 4;
 	unsigned int num_verts_per_tri = 3;
