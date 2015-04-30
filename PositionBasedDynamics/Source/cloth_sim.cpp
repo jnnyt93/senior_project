@@ -283,11 +283,12 @@ void ClothSim::find_neighboring_particles(){
 
 void ClothSim::resolve_box_collision(float dt) {
 	float buffer = 0.5;
+	glm::vec3 dim = glm::vec3(5,5,15);
+	glm::vec3 norm, reflected_dir;
+
 	FOR_EACH_PARTICLE {
 		glm::vec3 pi = m_vertices.predicted_pos(i);
 		glm::vec3 vel = m_vertices.vel(i);
-		glm::vec3 dim = glm::vec3(2,2,6);
-		glm::vec3 norm, reflected_dir;
 
 		if (pi.x <= -dim.x + buffer) {
 			norm = glm::vec3(0,1,0);

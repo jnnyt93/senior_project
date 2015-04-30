@@ -6,8 +6,8 @@
 #include "stb_image_write.h"
 #include "main.h"
 
-int window_width = 1024;
-int window_height = 768;
+int window_width = 1000;
+int window_height = 1000;
 
 //----------State Control----------//
 bool pause = true;
@@ -316,8 +316,8 @@ int main(int argc, char** argv)
     ClothSim cloth_sim(1);
 
     // TODO: change here if you want to modify the dimension.
-    cloth_sim.initialize(5, 8, 5, glm::vec3(-1.5f, 0.5f, 5.5f), glm::vec3(1.5f, 8.0f, 3.5f));
-	
+    //cloth_sim.initialize(10, 10, 10, glm::vec3(-3.5f, 5.0f, -3.5f), glm::vec3(3.5f, 15.0f, 3.5f));
+	cloth_sim.initialize(5, 5, 5, glm::vec3(-1.5f, 0.5f, -1.5f), glm::vec3(1.5f, 5.0f, 1.5f));
 
     lastTime = glfwGetTime();
     while(run)
