@@ -87,6 +87,7 @@ private:
 	float sph_density_estimator(unsigned int pi);
 	void compute_lambda();
 	glm::vec3 W_spiky(glm::vec3 r, float h);
+	float W(float r, float h);
 	glm::vec3 ClothSim::gradient_C(unsigned int i, unsigned int k);
 	void sphere_init_visualization(glm::vec3 m_center);
 	float m_radius;
@@ -97,8 +98,7 @@ private:
 	void update_position();
 	float h; //smoothing radius
 	float rest_density;
-	float epsilon;
-	float friction;
+	float epsilon; // relaxation constant
 	float restitution;
 
 	glm::vec3 particle_color;

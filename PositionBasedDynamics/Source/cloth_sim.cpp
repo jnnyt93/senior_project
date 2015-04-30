@@ -43,7 +43,6 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 	h = 2.0f;
 	rest_density = 1000.0f;
 	epsilon = 0.01f;
-	friction = 0.98f;
 	restitution = 1.0f;
 	m_radius = 1.0f;
     m_dimx = dim_x;
@@ -89,6 +88,7 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 	}
 }
 
+// ============= The Algorithm ============= //
 
 void ClothSim::update(const Scene* const scene, float dt)
 {// update the system for a certain time step dt.
@@ -98,159 +98,6 @@ void ClothSim::update(const Scene* const scene, float dt)
 	resolve_constraints(dt);
     update_velocity(dt);
 	update_position();
-}
-
-void ClothSim::draw(const VBO& vbos)
-{// visualize the cloth on the screen.
-	//clear color and depth buffer 
-    
-    glPolygonMode(GL_FRONT_AND_BACK, (m_draw_wire ? GL_LINE : GL_FILL));
-
-    unsigned int size = m_vertices.size();
-
-    // position
-    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_vertices.pos(0), GL_DYNAMIC_DRAW);
-    // color
-    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_cbo);
-    glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_colors[0], GL_STATIC_DRAW);
-    // normal
-    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
-    glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_normals[0], GL_DYNAMIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_cbo);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbos.m_ibo);
-    glDrawArrays(GL_POINTS, 0, size);
-
-	glEnable(GL_PROGRAM_POINT_SIZE);
-	glPointSize(5.0f);
-
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(2);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-}
-
-/* poly6 kernal function */
-float W(float r, float h) {
-	float frac = 315.0f/ (64.0f * M_PI * glm::pow(h,9.0f));
-	float r2 = r * r;
-	float temp = h*h - r2;
-	float temp2 = glm::pow(temp, 3.0f);
-	return frac*temp2;
-}
-
-glm::vec3 ClothSim::W_spiky(glm::vec3 r, float h) {
-	float a = 45.0f / (M_PI * glm::pow(h, 6.f));
-	float b = glm::pow(h - glm::length(r), 2.0f);
-	glm::vec3 c = r/(glm::length(r) + 0.001f);
-	glm::vec3 ret = a * b * c;
-	return ret;
-}
-
-float ClothSim::sph_density_estimator(unsigned int pi) {
-	float density = 0.0f;
-	std::vector<unsigned int> neighbors_of_pi = m_neighbors.at(pi);
-	for (int j = 0; j < neighbors_of_pi.size(); j++) {
-		unsigned int neighbor_index = neighbors_of_pi[j];
-		float mass = 1.0f/m_vertices.inv_mass(pi);
-		glm::vec3 p_i = m_vertices.predicted_pos(pi);
-		glm::vec3 p_j = m_vertices.predicted_pos(neighbor_index);
-		glm::vec3 r = p_i - p_j;
-		density += mass * W(glm::length(r), h);
-	}
-	return density;
-}
-
-glm::vec3 ClothSim::gradient_C(unsigned int i, unsigned int k) {
-	glm::vec3 pi = m_vertices.predicted_pos(i);
-	glm::vec3 pj;
-	glm::vec3 gradientC = glm::vec3(0.0f);
-	glm::vec3 sum = glm::vec3(0.0f);
-	float sum_grad = 0.0f;
-	std::vector<unsigned int> neighbors = m_neighbors.at(i);
-	for (int j = 0; j < neighbors.size(); j++) {
-		unsigned int j_indx = neighbors.at(j);
-		pj = m_vertices.predicted_pos(j_indx);
-		if (k == i) {
-			sum += W_spiky(pi-pj, h);
-		} else if (k == j_indx) {
-			sum -= W_spiky(pi-pj, h);
-		}
-	}
-	gradientC += sum/rest_density;
-	return gradientC;
-}
-
-void ClothSim::compute_deltaPi() {
-	FOR_EACH_PARTICLE {
-		glm::vec3 pj = m_vertices.predicted_pos(i);
-		float li = m_lambdas[i];
-		glm::vec3 dp = glm::vec3(0.0f);
-		for (int j = 0; j < m_neighbors[i].size(); j++) {
-			unsigned int neighbor_index = m_neighbors[i].at(j);
-			glm::vec3 pi = m_vertices.pos(i);
-			glm::vec3 pj = m_vertices.pos(neighbor_index);
-			glm::vec3 w = W_spiky(pi - pj, h);
-
-			// 4. Tensile Instability
-			float k = 0.1f;
-			float n = 4.0f;
-			float deltaQ = 0.2*h;
-			float s_corr = -k * glm::pow( W(glm::length(pi-pj), h) / W(deltaQ, h), n);
-
-			dp += (m_lambdas.at(i) + m_lambdas.at(neighbor_index) + s_corr) * w;
-		}
-		dp *= 1.0f / rest_density;
-		m_deltaP[i] = dp;
-	}
-}
-
-void ClothSim::update_predicted_position() {
-	FOR_EACH_PARTICLE {
-		m_vertices.predicted_pos(i) = m_vertices.predicted_pos(i) + m_deltaP[i];
-	}
-}
-
-void ClothSim::update_position() {
-	FOR_EACH_PARTICLE {
-		m_vertices.pos(i) = m_vertices.predicted_pos(i); 
-	}
-}
-
-void ClothSim::compute_lambda() {
-	FOR_EACH_PARTICLE {
-		float density = sph_density_estimator(i);
-		float Ci = (density/rest_density) - 1.0f;
-
-		float sumk = 0.0f;
-		glm::vec3 grad_c = glm::vec3(0.0f);
-		for (int k = 0; k < m_vertices.size(); k++) {
-			grad_c = gradient_C(i, k);
-			float l = 0;
-			if (grad_c != glm::vec3(0,0,0))
-				l = glm::length(grad_c);
-			sumk += l*l;
-		}
-
-		sumk += epsilon;
-		m_lambdas.at(i) = -1.0f * Ci/sumk;
-	}
 }
 
 void ClothSim::apply_external_force(const glm::vec3& force, float dt)
@@ -278,6 +125,84 @@ void ClothSim::find_neighboring_particles(){
 			}
 		}
 		m_neighbors.at(i) = p1_neighbors;
+	}
+}
+
+// ============= Resolve Constraints ============= //
+
+void ClothSim::resolve_constraints(float dt)
+{
+	for(unsigned int n = 0; n < m_solver_iterations; ++n) {
+		compute_lambda();
+		compute_deltaPi();
+		resolve_box_collision(dt);
+		update_predicted_position();
+	}
+}
+
+void ClothSim::compute_lambda() {
+	FOR_EACH_PARTICLE {
+		float density = sph_density_estimator(i);
+		float Ci = (density/rest_density) - 1.0f;
+
+		float sumk = 0.0f;
+		glm::vec3 grad_c = glm::vec3(0.0f);
+		for (int k = 0; k < m_vertices.size(); k++) {
+			grad_c = gradient_C(i, k);
+			float l = 0;
+			if (grad_c != glm::vec3(0,0,0))
+				l = glm::length(grad_c);
+			sumk += l*l;
+		}
+
+		sumk += epsilon;
+		m_lambdas.at(i) = -1.0f * Ci/sumk;
+	}
+}
+
+void ClothSim::compute_deltaPi() {
+	FOR_EACH_PARTICLE {
+		glm::vec3 pj = m_vertices.predicted_pos(i);
+		float li = m_lambdas[i];
+		glm::vec3 dp = glm::vec3(0.0f);
+		for (int j = 0; j < m_neighbors[i].size(); j++) {
+			unsigned int neighbor_index = m_neighbors[i].at(j);
+			glm::vec3 pi = m_vertices.pos(i);
+			glm::vec3 pj = m_vertices.pos(neighbor_index);
+			glm::vec3 w = W_spiky(pi - pj, h);
+
+			// 4. Tensile Instability
+			float k = 0.1f;
+			float n = 4.0f;
+			float deltaQ = 0.2*h;
+			float s_corr = -k * glm::pow( W(glm::length(pi-pj), h) / W(deltaQ, h), n);
+
+			dp += (m_lambdas.at(i) + m_lambdas.at(neighbor_index) + s_corr) * w;
+		}
+		dp *= 1.0f / rest_density;
+		m_deltaP[i] = dp;
+	}
+}
+
+void ClothSim::update_velocity(float dt)
+{
+	FOR_EACH_PARTICLE {
+		m_vertices.vel(i) = (m_vertices.predicted_pos(i)-m_vertices.pos(i)) / dt;
+		float mag_vel = glm::length(m_vertices.vel(i));
+		if (mag_vel < 0.8) mag_vel = 0.8;
+
+		m_colors[i] = particle_color * mag_vel;
+
+		if (m_colors[i][0] > 1.0) m_colors[i][0] = 1.0;
+		if (m_colors[i][1] > 1.0) m_colors[i][1] = 1.0;
+		if (m_colors[i][2] > 1.0) m_colors[i][2] = 1.0;
+
+	}
+}
+
+void ClothSim::update_position() {
+	FOR_EACH_PARTICLE {
+		m_vertices.pos(i) = m_vertices.predicted_pos(i); 
 	}
 }
 
@@ -324,36 +249,114 @@ void ClothSim::resolve_box_collision(float dt) {
 	}
 }
 
+void ClothSim::update_predicted_position() {
+	FOR_EACH_PARTICLE {
+		m_vertices.predicted_pos(i) = m_vertices.predicted_pos(i) + m_deltaP[i];
+	}
+}
+
+// ============= SPH Density Estimator Functions ============= //
+
+/* poly6 kernal function */
+float ClothSim::W(float r, float h) {
+	float frac = 315.0f/ (64.0f * M_PI * glm::pow(h,9.0f));
+	float r2 = r * r;
+	float temp = h*h - r2;
+	float temp2 = glm::pow(temp, 3.0f);
+	return frac*temp2;
+}
+
+/* spiky kernel function */
+glm::vec3 ClothSim::W_spiky(glm::vec3 r, float h) {
+	float a = 45.0f / (M_PI * glm::pow(h, 6.f));
+	float b = glm::pow(h - glm::length(r), 2.0f);
+	glm::vec3 c = r/(glm::length(r) + 0.001f);
+	glm::vec3 ret = a * b * c;
+	return ret;
+}
+
+float ClothSim::sph_density_estimator(unsigned int pi) {
+	float density = 0.0f;
+	std::vector<unsigned int> neighbors_of_pi = m_neighbors.at(pi);
+	for (int j = 0; j < neighbors_of_pi.size(); j++) {
+		unsigned int neighbor_index = neighbors_of_pi[j];
+		float mass = 1.0f/m_vertices.inv_mass(pi);
+		glm::vec3 p_i = m_vertices.predicted_pos(pi);
+		glm::vec3 p_j = m_vertices.predicted_pos(neighbor_index);
+		glm::vec3 r = p_i - p_j;
+		density += mass * W(glm::length(r), h);
+	}
+	return density;
+}
+
+glm::vec3 ClothSim::gradient_C(unsigned int i, unsigned int k) {
+	glm::vec3 pi = m_vertices.predicted_pos(i);
+	glm::vec3 pj;
+	glm::vec3 gradientC = glm::vec3(0.0f);
+	glm::vec3 sum = glm::vec3(0.0f);
+	float sum_grad = 0.0f;
+	std::vector<unsigned int> neighbors = m_neighbors.at(i);
+	for (int j = 0; j < neighbors.size(); j++) {
+		unsigned int j_indx = neighbors.at(j);
+		pj = m_vertices.predicted_pos(j_indx);
+		if (k == i) {
+			sum += W_spiky(pi-pj, h);
+		} else if (k == j_indx) {
+			sum -= W_spiky(pi-pj, h);
+		}
+	}
+	gradientC += sum/rest_density;
+	return gradientC;
+}
+
 void print_vec(glm::vec3 v) {
 	printf("(%f, %f, %f)\n", v[0], v[1], v[2]);
 }
 
-void ClothSim::update_velocity(float dt)
-{
-	FOR_EACH_PARTICLE {
-		m_vertices.vel(i) = (m_vertices.predicted_pos(i)-m_vertices.pos(i)) / dt;
-		//printf("velocity = (%f, %f, %f)\n", m_vertices.vel(i).x, m_vertices.vel(i).y, m_vertices.vel(i).z);
-		//printf("mag vel = %f\n", glm::length(m_vertices.vel(i)));
-		float mag_vel = glm::length(m_vertices.vel(i));
-		if (mag_vel < 0.8) mag_vel = 0.8;
+// ============= Particle Display ============= //
 
-		m_colors[i] = particle_color * mag_vel;
+void ClothSim::draw(const VBO& vbos)
+{// visualize the cloth on the screen.
+	//clear color and depth buffer 
+    
+    glPolygonMode(GL_FRONT_AND_BACK, (m_draw_wire ? GL_LINE : GL_FILL));
 
-		if (m_colors[i][0] > 1.0) m_colors[i][0] = 1.0;
-		if (m_colors[i][1] > 1.0) m_colors[i][1] = 1.0;
-		if (m_colors[i][2] > 1.0) m_colors[i][2] = 1.0;
+    unsigned int size = m_vertices.size();
 
-		//printf("color =");
-		print_vec(m_colors[i]);
-	}
-}
+    // position
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
+    glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_vertices.pos(0), GL_DYNAMIC_DRAW);
+    // color
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_cbo);
+    glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_colors[0], GL_STATIC_DRAW);
+    // normal
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
+    glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_normals[0], GL_DYNAMIC_DRAW);
 
-void ClothSim::resolve_constraints(float dt)
-{
-	for(unsigned int n = 0; n < m_solver_iterations; ++n) {
-		compute_lambda();
-		compute_deltaPi();
-		resolve_box_collision(dt);
-		update_predicted_position();
-	}
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_cbo);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbos.m_ibo);
+    glDrawArrays(GL_POINTS, 0, size);
+
+	glEnable(GL_PROGRAM_POINT_SIZE);
+	glPointSize(5.0f);
+
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
 }
