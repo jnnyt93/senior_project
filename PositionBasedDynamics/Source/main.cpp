@@ -8,6 +8,7 @@
 
 int window_width = 1024;
 int window_height = 1000;
+ClothSim cloth_sim(1);
 
 //----------State Control----------//
 bool pause = true;
@@ -172,6 +173,9 @@ void keypress(int key, int action)
         case 'R':
             record = !record;
             break;
+		case 'w':
+		case 'W':
+			cloth_sim.begin_wall_move = !cloth_sim.begin_wall_move;
         }
     }
 }
@@ -313,7 +317,7 @@ int main(int argc, char** argv)
     VBO vbo_handle;
     Scene scene("../Scene/test_scene.xml");
     // TODO: change here if you want to use a smaller iteration number.
-    ClothSim cloth_sim(1);
+    //ClothSim cloth_sim(1);
 
     // TODO: change here if you want to modify the dimension.
     //cloth_sim.initialize(10, 10, 10, glm::vec3(-3.5f, 5.0f, -3.5f), glm::vec3(3.5f, 15.0f, 3.5f));
@@ -328,11 +332,7 @@ int main(int argc, char** argv)
 
         if(!pause)
             cloth_sim.update(&scene, 0.05f); // The time step
-        if(flip_draw_mode)
-        {
-            cloth_sim.flip_draw_mode();
-            flip_draw_mode = false;
-        }
+
         activate_shaderprog(m_shaderprog_handle);
 		//For each particle, compute its translation matrix (and scale if appropriate)
 		//Pass this matrix to the shader, then render a sphere (sphere.draw, probably)

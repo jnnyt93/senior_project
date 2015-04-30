@@ -8,7 +8,6 @@
 #include "openGL_headers.h"
 #include "math_headers.h"
 #include "particlelist.h"
-#include "constraint.h"
 #include "scene.h"
 #include <vector>
 
@@ -24,11 +23,9 @@ public:
 	void uploadPoint();
     void update(const Scene* const scene, float dt);
     void draw(const VBO& vbos);
-    void flip_draw_mode()
-    {
-        m_draw_wire = !m_draw_wire;
-    }
-	
+
+	bool begin_wall_move;
+
 protected:
     struct Edge
     {
@@ -50,19 +47,14 @@ protected:
 	std::vector<glm::vec3> m_deltaP;
 	std::vector<glm::vec3> m_curl;
 	std::vector<float> m_viscosity;
-    // internal and external constraints.
-    std::vector<Constraint*> m_constraints_int;
-    std::vector<CollisionConstraint> m_constraints_ext;
-    std::vector<SelfCollisionConstraint> m_self_collision;
-    //std::vector<Constraint*> m_constraints_ext;
+
     // for visualize the cloth.
-    bool m_draw_wire;
 	std::vector<glm::vec3> m_positions;
     std::vector<glm::vec3> m_normals;
     std::vector<glm::vec3> m_colors;
-    std::vector<unsigned int> m_indices;
-    // for generating constraints.
-    std::vector<Edge> m_edge_list;
+
+	
+
 private:
     // generate edge list from the geometry representation.
     void generate_edge_list();
@@ -105,12 +97,16 @@ private:
 	float RESTITUTION;
 	float m_radius;
 	float c; // parameter for XSPH viscosity
+	glm::vec3 BOX_DIM;
 
 	bool apply_vorticity;
 	bool apply_viscosity;
 	bool apply_tensile_instability;
 
 	glm::vec3 particle_color;
+
+	float wall_move_z;
+	
 
 };
 

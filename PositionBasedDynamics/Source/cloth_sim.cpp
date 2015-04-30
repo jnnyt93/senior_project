@@ -10,8 +10,7 @@ void print_vec(glm::vec3 v) {printf("(%f, %f, %f)\n", v[0], v[1], v[2]);}
 ClothSim::ClothSim() : 
     m_dimx(0), m_dimy(0), m_dimz(0),
     m_thick(0.05f),
-    m_solver_iterations(10),
-    m_draw_wire(false)
+    m_solver_iterations(10)
 {
     ;
 }
@@ -19,8 +18,7 @@ ClothSim::ClothSim() :
 ClothSim::ClothSim(unsigned int n) : 
     m_dimx(0), m_dimy(0), m_dimz(0),
     m_thick(0.05f),
-    m_solver_iterations(n),
-    m_draw_wire(false)
+    m_solver_iterations(n)
 {
     ;
 }
@@ -29,15 +27,6 @@ ClothSim::~ClothSim()
 {
     m_normals.clear();
     m_colors.clear();
-
-    unsigned int i, size;
-    size = m_constraints_int.size();
-    for(i = 0; i < size; ++i)
-        delete m_constraints_int[i];
-    m_constraints_int.clear();
-
-    m_constraints_ext.clear();
-    m_self_collision.clear();
 }
 
 void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int dim_z, const glm::vec3& cloth_min, const glm::vec3& cloth_max)
@@ -56,6 +45,9 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 	glm::vec3 GRAVITY(0.0f, -98.f, 0.0f);
 	m_radius = 1.0f;
 	c = 0.01;
+	BOX_DIM = glm::vec3(5,5,15);
+
+	wall_move_z = 0.0f;
 
     m_dimx = dim_x;
 	m_dimy = dim_y;
@@ -89,7 +81,7 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 			for(k = 0; k < m_dimz; ++k) {
 				if (j % 2 == 0) d = -d;
 				m_vertices.pos(index) = glm::vec3(delta.x * i + cloth_min.x + d, delta.y * j + cloth_min.y + d, delta.z * k + cloth_min.z - d);
-				std::cout << m_vertices.pos(index)[0] << ", " << m_vertices.pos(index)[1] << ", " << m_vertices.pos(index)[2] << std::endl;
+				//std::cout << m_vertices.pos(index)[0] << ", " << m_vertices.pos(index)[1] << ", " << m_vertices.pos(index)[2] << std::endl;
 				m_vertices.vel(index) = glm::vec3(0.0f);
 				m_vertices.set_inv_mass(index, 1.0f);
 				m_vertices.force(index) = GRAVITY;
@@ -116,6 +108,15 @@ void ClothSim::update(const Scene* const scene, float dt)
     update_velocity(dt);
 	if (apply_vorticity) compute_vorticity();
 	update_position();
+
+	if(begin_wall_move) {
+		wall_move_z += 0.1f;
+		if (wall_move_z > BOX_DIM.z) {
+			wall_move_z = 0.0f;
+		}
+	} else {
+		wall_move_z = 0.0f;
+	}
 }
 
 void ClothSim::apply_external_force(float dt)
@@ -234,8 +235,8 @@ void ClothSim::update_position() {
 
 void ClothSim::resolve_box_collision(float dt) {
 	float buffer = 0.5;
-	glm::vec3 dim = glm::vec3(5,5,15);
 	glm::vec3 norm, reflected_dir;
+	glm::vec3 dim = BOX_DIM;
 
 	FOR_EACH_PARTICLE {
 		glm::vec3 pi = m_vertices.predicted_pos(i);
@@ -259,17 +260,17 @@ void ClothSim::resolve_box_collision(float dt) {
 			vel.y = RESTITUTION*reflected_dir.y;
 			m_vertices.predicted_pos(i).y = buffer;
 		}
-		if (pi.z <= -dim.z + buffer) {
+		if (pi.z <= -dim.z + buffer ) {
 			norm = glm::vec3(0,0,1);
 			reflected_dir = glm::reflect(vel, norm);
 			vel.z = RESTITUTION*reflected_dir.z;
 			m_vertices.predicted_pos(i).z = -dim.z + buffer;
 		}
-		if (pi.z >= dim.z - buffer) {
+		if (pi.z >= dim.z - buffer - wall_move_z) {
 			norm = glm::vec3(0,0,-1);
 			reflected_dir = glm::reflect(vel, norm);
 			vel.z = RESTITUTION*reflected_dir.z;
-			m_vertices.predicted_pos(i).z = dim.z - buffer;
+			m_vertices.predicted_pos(i).z = dim.z - buffer - wall_move_z;
 		}
 		m_vertices.vel(i) = vel;
 	}
@@ -362,19 +363,12 @@ glm::vec3 ClothSim::compute_vorticity() {
 			glm::vec3 pj = m_vertices.pos(neighbor_index);
 			glm::vec3 r = pi - pj;
 			float mag_wi = glm::length((m_curl[neighbor_index] - wi) + 0.001f);
-			//std::cout << "mag_wi = " << mag_wi << std::endl;
 			grad_wi.x += mag_wi / (r.x + 0.001f);
 			grad_wi.y += mag_wi / (r.y + 0.001f);
 			grad_wi.z += mag_wi / (r.z + 0.001f);
 		}
-		//std::cout << "grad_wi = ";
-		//print_vec(grad_wi);
 		glm::vec3 N = grad_wi / (glm::length(grad_wi) + 0.001f);
 		glm::vec3 force_vorticity = RELAXATION * glm::cross(N, wi);
-		//std::cout << "N = ";
-		//print_vec(N);
-		//std::cout << "vorticity = ";
-		//print_vec(force_vorticity);
 		m_vertices.force(i) += force_vorticity;
 	}
 }
@@ -400,8 +394,6 @@ float ClothSim::compute_viscosity() {
 void ClothSim::draw(const VBO& vbos)
 {// visualize the cloth on the screen.
 	//clear color and depth buffer 
-    
-    glPolygonMode(GL_FRONT_AND_BACK, (m_draw_wire ? GL_LINE : GL_FILL));
 
     unsigned int size = m_vertices.size();
 
