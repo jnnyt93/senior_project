@@ -185,51 +185,43 @@ void ClothSim::draw(const VBO& vbos)
 {// visualize the cloth on the screen.
 	//clear color and depth buffer 
     
-	glColor3f(1.0f,1.0f,1.0f); //blue color
-	glPointSize(10.0f);//set point size to 10 pixels
-	glBegin(GL_POINTS); //starts drawing of points
-	for (int i = 0; i < m_vertices.size(); i++) {
-		glColor3f(0.0f,0.0f,1.0f); //blue color
-		glVertex3f(m_vertices.pos(i)[0],m_vertices.pos(i)[1],m_vertices.pos(i)[2]);//upper-right corner
-	}
-	glEnd();//end drawing of points
+    unsigned int size = m_vertices.size();
 
-	//glPolygonMode(GL_FRONT_AND_BACK, (m_draw_wire ? GL_LINE : GL_FILL));
+    // position
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
+    glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_vertices.pos(0), GL_DYNAMIC_DRAW);
+    // color
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_cbo);
+    glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_colors[0], GL_STATIC_DRAW);
+    // normal
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
+    glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_normals[0], GL_DYNAMIC_DRAW);
 
- //   unsigned int size = m_vertices.size();
- //   // position
- //   glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
- //   glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_vertices.pos(0), GL_DYNAMIC_DRAW);
- //   // color
- //   glBindBuffer(GL_ARRAY_BUFFER, vbos.m_cbo);
- //   glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_colors[0], GL_STATIC_DRAW);
- //   // normal
- //   glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
- //   glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_normals[0], GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
 
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
- //   glEnableVertexAttribArray(0);
- //   glEnableVertexAttribArray(1);
- //   glEnableVertexAttribArray(2);
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_cbo);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
- //   glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
- //   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
- //   glBindBuffer(GL_ARRAY_BUFFER, vbos.m_cbo);
- //   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, vbos.m_ibo);
+    glDrawArrays(GL_POINTS, 0, size);
 
- //   glBindBuffer(GL_ARRAY_BUFFER, vbos.m_nbo);
- //   glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnable(GL_PROGRAM_POINT_SIZE);
+	glPointSize(5.0f);
 
- //   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbos.m_ibo);
- //   glDrawElements(GL_POINTS, 1, GL_UNSIGNED_INT, 0);
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(2);
 
- //   glDisableVertexAttribArray(0);
- //   glDisableVertexAttribArray(1);
- //   glDisableVertexAttribArray(2);
-
- //   glBindBuffer(GL_ARRAY_BUFFER, 0);
- //   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 }
 
