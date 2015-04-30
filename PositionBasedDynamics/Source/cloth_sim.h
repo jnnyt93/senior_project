@@ -48,6 +48,8 @@ protected:
 	std::vector<float> m_C;
 	std::vector<float> m_gradC;
 	std::vector<glm::vec3> m_deltaP;
+	std::vector<glm::vec3> m_curl;
+	std::vector<float> m_viscosity;
     // internal and external constraints.
     std::vector<Constraint*> m_constraints_int;
     std::vector<CollisionConstraint> m_constraints_ext;
@@ -69,7 +71,7 @@ private:
     // update the normal per frame for visualization.
     void compute_normal();
     // apply external force to the system.
-    void apply_external_force(const glm::vec3& force, float dt);
+    void apply_external_force(float dt);
     // damp velocity for all vertices.
     void damp_velocity(float k_damp);
     // compute predicted position based on velocity.
@@ -89,17 +91,24 @@ private:
 	glm::vec3 W_spiky(glm::vec3 r, float h);
 	float W(float r, float h);
 	glm::vec3 ClothSim::gradient_C(unsigned int i, unsigned int k);
-	void sphere_init_visualization(glm::vec3 m_center);
-	float m_radius;
+	glm::vec3 compute_vorticity();
+	void compute_curl();
+	float compute_viscosity();
 
 	void resolve_box_collision(float dt);
 	void compute_deltaPi();
 	void update_predicted_position();
 	void update_position();
 	float h; //smoothing radius
-	float rest_density;
-	float epsilon; // relaxation constant
-	float restitution;
+	float REST_DENSITY;
+	float RELAXATION;
+	float RESTITUTION;
+	float m_radius;
+	float c; // parameter for XSPH viscosity
+
+	bool apply_vorticity;
+	bool apply_viscosity;
+	bool apply_tensile_instability;
 
 	glm::vec3 particle_color;
 

@@ -4,8 +4,8 @@
 #include "constraint.h"
 #include <cassert>
 
-#ifndef EPSILON
-#define EPSILON 0.00001f
+#ifndef RELAXATION
+#define RELAXATION 0.00001f
 #define M_PI 3.14159265358979323846  /* pi */
 #endif
 
@@ -53,7 +53,7 @@ DensityConstraint::DensityConstraint(ParticleList *verts, std::vector<std::vecto
 	m_neighbors(neighbors),
 	m_lambdas(lambdas),
 	m_p0(p0),
-	rest_density(1000.0f),
+	REST_DENSITY(1000.0f),
 	h(h)
 {
     ;
@@ -95,7 +95,7 @@ bool DensityConstraint::project_constraint()
 		glm::vec3 w = W_spiky(pi - pj, h);
 		dp0 += (m_lambdas.at(m_p0) + m_lambdas.at(neighbor_index)) * w;
 	}
-	dp0 *= 1.0f / rest_density;
+	dp0 *= 1.0f / REST_DENSITY;
 	m_vertices->predicted_pos(m_p0) += dp0 * m_stiffness;
 
 	return false;

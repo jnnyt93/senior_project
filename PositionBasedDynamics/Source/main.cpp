@@ -6,7 +6,7 @@
 #include "stb_image_write.h"
 #include "main.h"
 
-int window_width = 1000;
+int window_width = 1024;
 int window_height = 1000;
 
 //----------State Control----------//
@@ -28,8 +28,8 @@ GLuint m_uniform_location[2];
 GLuint m_vert_handle, m_frag_handle, m_shaderprog_handle;
 
 //----------Camera Control----------//
-float eye_distance = 20.0f;
-float head = 45.0f, pitch = 0.0f;
+float eye_distance = 30.0f;
+float head = 15.0f, pitch = 0.0f;
 glm::vec3 cam_pos, up(0.0f, 1.0f, 0.0f), lookat(0.0f, 4.0f, 0.0f);
 
 //----------functions----------//

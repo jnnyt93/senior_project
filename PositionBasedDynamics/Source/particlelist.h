@@ -19,6 +19,7 @@ struct ParticleList
         m_vel.clear();
         m_lock_pos.clear();
         m_inv_mass.clear();
+		m_force.clear();
         m_size = 0;
     }
 
@@ -29,10 +30,12 @@ struct ParticleList
         m_vel.clear();
         m_lock_pos.clear();
         m_inv_mass.clear();
+		m_force.clear();
 
         m_pos.resize(size);
         m_predicted_pos.resize(size);
         m_vel.resize(size);
+		m_force.resize(size);
         m_lock_pos.resize(size, false);
         m_inv_mass.resize(size, 1.0f);
 
@@ -103,6 +106,17 @@ struct ParticleList
         assert(n < m_size);
         return m_vel[n];
     }
+	// force accessor.
+    const glm::vec3& force(unsigned int n) const
+    {
+        assert(n < m_size);
+        return m_force[n];
+    }
+    glm::vec3& force(unsigned int n)
+    {
+        assert(n < m_size);
+        return m_force[n];
+    }
     // size accessor
     unsigned int size() const
     {
@@ -110,17 +124,19 @@ struct ParticleList
     }
 
 protected:
-    // number of vertices.
+    // number of vertices
     unsigned int m_size;
-    // position of all vertices.
+    // position of all vertices
     std::vector<glm::vec3> m_pos;
-    // predicted position.
+    // predicted position
     std::vector<glm::vec3> m_predicted_pos;
     // velocity of a vertex
     std::vector<glm::vec3> m_vel;
     // used for fixing vertex to a certain point
     std::vector<bool> m_lock_pos;
-    // weight for resolving the constraints.
+    // weight for resolving the constraints
     std::vector<float> m_inv_mass;
+	// the external forces of all particles
+	std::vector<glm::vec3> m_force;
 };
 #endif

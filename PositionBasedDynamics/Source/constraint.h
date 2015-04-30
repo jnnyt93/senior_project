@@ -39,7 +39,7 @@ protected:
     // cardinality for stretch constraint is 1.
 	unsigned int m_p0;
 	float h; // smoothing radius
-	float rest_density;
+	float REST_DENSITY;
 	std::vector<std::vector<unsigned int>>* m_neighbors;
 	std::vector<float> m_lambdas;
 	
