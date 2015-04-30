@@ -101,6 +101,8 @@ private:
 	float friction;
 	float restitution;
 
+	glm::vec3 particle_color;
+
 };
 
 #endif

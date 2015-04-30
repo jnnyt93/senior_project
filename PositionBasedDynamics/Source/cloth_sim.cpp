@@ -45,17 +45,18 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 	epsilon = 0.01f;
 	friction = 0.98f;
 	restitution = 1.0f;
-	m_radius = 1.5f;
+	m_radius = 1.0f;
     m_dimx = dim_x;
 	m_dimy = dim_y;
     m_dimz = dim_z;
 
-	glm::vec3 particle_color(0.25f, 0.65f, 0.85f);
+	particle_color = glm::vec3(0.25f, 0.65f, 0.85f);
 
     glm::vec3 delta;
     delta.x = (cloth_max.x - cloth_min.x) / (float)(m_dimx - 1);
     delta.y = (cloth_max.y - cloth_min.y) / (float)(m_dimy - 1);
     delta.z = (cloth_max.z - cloth_min.z) / (float)(m_dimz - 1);
+
     // if you want, you can substitute this part using a obj file loader.
 	// We'll be dealing with the most simple case, so things are done manually here.
 	m_vertices.resize(m_dimx * m_dimy * m_dimz);
@@ -64,6 +65,7 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 	m_neighbors.resize(m_dimx * m_dimy * m_dimz);
 	m_lambdas.resize(m_dimx * m_dimy * m_dimz);
 	m_deltaP.resize(m_dimx * m_dimy * m_dimz);
+
 	// Assign initial position, velocity and mass to all the vertices.
 	unsigned int i, k, j, index;
 	index = 0;
@@ -105,7 +107,7 @@ void ClothSim::draw(const VBO& vbos)
     glPolygonMode(GL_FRONT_AND_BACK, (m_draw_wire ? GL_LINE : GL_FILL));
 
     unsigned int size = m_vertices.size();
-    //unsigned int element_num = m_triangle_list.size();
+
     // position
     glBindBuffer(GL_ARRAY_BUFFER, vbos.m_vbo);
     glBufferData(GL_ARRAY_BUFFER, 3 * size * sizeof(float), &m_vertices.pos(0), GL_DYNAMIC_DRAW);
@@ -321,10 +323,27 @@ void ClothSim::resolve_box_collision(float dt) {
 	}
 }
 
+void print_vec(glm::vec3 v) {
+	printf("(%f, %f, %f)\n", v[0], v[1], v[2]);
+}
+
 void ClothSim::update_velocity(float dt)
 {
 	FOR_EACH_PARTICLE {
 		m_vertices.vel(i) = (m_vertices.predicted_pos(i)-m_vertices.pos(i)) / dt;
+		//printf("velocity = (%f, %f, %f)\n", m_vertices.vel(i).x, m_vertices.vel(i).y, m_vertices.vel(i).z);
+		//printf("mag vel = %f\n", glm::length(m_vertices.vel(i)));
+		float mag_vel = glm::length(m_vertices.vel(i));
+		if (mag_vel < 0.8) mag_vel = 0.8;
+
+		m_colors[i] = particle_color * mag_vel;
+
+		if (m_colors[i][0] > 1.0) m_colors[i][0] = 1.0;
+		if (m_colors[i][1] > 1.0) m_colors[i][1] = 1.0;
+		if (m_colors[i][2] > 1.0) m_colors[i][2] = 1.0;
+
+		//printf("color =");
+		print_vec(m_colors[i]);
 	}
 }
 

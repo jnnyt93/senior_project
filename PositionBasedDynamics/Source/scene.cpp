@@ -152,7 +152,7 @@ void Scene::Box::init_visualization()
     m_normals.clear();
     m_indices.clear();
 
-    glm::vec3 mat_color(17.f/255, 83.f/255, 128.f/255);
+    glm::vec3 mat_color(46.f/255, 61.f/255, 102.f/255);
 	unsigned int num_faces = 4;
 	unsigned int num_verts_per_face = 4;
 	unsigned int num_verts_per_tri = 3;
