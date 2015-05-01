@@ -35,7 +35,8 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 	// Apply the extensions
 	apply_vorticity = false;
 	apply_viscosity = false;
-	apply_tensile_instability = false;
+	apply_tensile_instability = true;
+	bool load_obj = false;
 
 	// Constants
 	h = 2.0f;
@@ -61,38 +62,68 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
     delta.y = (cloth_max.y - cloth_min.y) / (float)(m_dimy - 1);
     delta.z = (cloth_max.z - cloth_min.z) / (float)(m_dimz - 1);
 
-    // if you want, you can substitute this part using a obj file loader.
-	// We'll be dealing with the most simple case, so things are done manually here.
-	m_vertices.resize(m_dimx * m_dimy * m_dimz);
-	m_normals.resize(m_dimx * m_dimy * m_dimz);
-	m_colors.resize(m_dimx * m_dimy * m_dimz);
-	m_neighbors.resize(m_dimx * m_dimy * m_dimz);
-	m_lambdas.resize(m_dimx * m_dimy * m_dimz);
-	m_deltaP.resize(m_dimx * m_dimy * m_dimz);
-	m_curl.resize(m_dimx * m_dimy * m_dimz);
-	m_viscosity.resize(m_dimx * m_dimy * m_dimz);
+	if (load_obj) {
+		ObjLoader loader;
+		loader.loadOBJ("obj/bunny_low2.obj");
+		cout << loader.vertices_.size() << endl;
+		m_vertices.resize(loader.vertices_.size());
+		m_normals.resize(loader.vertices_.size());
+		m_colors.resize(loader.vertices_.size());
+		m_neighbors.resize(loader.vertices_.size());
+		m_lambdas.resize(loader.vertices_.size());
+		m_deltaP.resize(loader.vertices_.size());
+		m_curl.resize(loader.vertices_.size());
+		m_viscosity.resize(loader.vertices_.size());
 
-	// Assign initial position, velocity and mass to all the vertices.
-	unsigned int i, k, j, index;
-	index = 0;
-	float d = 0.2f;
-	for(i = 0; i < m_dimx; ++i) {
-		for (j = 0; j < dim_y; ++j) {
-			for(k = 0; k < m_dimz; ++k) {
-				if (j % 2 == 0) d = -d;
-				m_vertices.pos(index) = glm::vec3(delta.x * i + cloth_min.x + d, delta.y * j + cloth_min.y + d, delta.z * k + cloth_min.z - d);
-				//std::cout << m_vertices.pos(index)[0] << ", " << m_vertices.pos(index)[1] << ", " << m_vertices.pos(index)[2] << std::endl;
-				m_vertices.vel(index) = glm::vec3(0.0f);
-				m_vertices.set_inv_mass(index, 1.0f);
-				m_vertices.force(index) = GRAVITY;
-				m_neighbors[index] = std::vector<unsigned int>();
-				m_lambdas[index] = 0.0f;
-				m_colors[index] = particle_color;
-				m_deltaP[index] = glm::vec3(0.0f);
-				m_curl[index] = glm::vec3(0.0f);
-				m_normals[index] = glm::vec3(1,0,0);
-				m_viscosity[index] = 0.0f;
-				index++;
+		for (int i = 0; i < m_vertices.size(); i++) {
+			m_vertices.pos(i) = loader.vertices_[i];
+			m_vertices.pos(i).y += 5.0f;
+			m_colors.push_back(particle_color);
+			m_normals.push_back(glm::vec3(1,0,0));
+			m_vertices.vel(i) = glm::vec3(0.0f);
+			m_vertices.set_inv_mass(i, 1.0f);
+			m_vertices.force(i) = GRAVITY;
+			m_neighbors[i] = std::vector<unsigned int>();
+			m_lambdas[i] = 0.0f;
+			m_colors[i] = particle_color;
+			m_deltaP[i] = glm::vec3(0.0f);
+			m_curl[i] = glm::vec3(0.0f);
+			m_normals[i] = glm::vec3(1,0,0);
+			m_viscosity[i] = 0.0f;
+		}
+	} else {
+		//if you want, you can substitute this part using a obj file loader.
+		//We'll be dealing with the most simple case, so things are done manually here.
+		m_vertices.resize(m_dimx * m_dimy * m_dimz);
+		m_normals.resize(m_dimx * m_dimy * m_dimz);
+		m_colors.resize(m_dimx * m_dimy * m_dimz);
+		m_neighbors.resize(m_dimx * m_dimy * m_dimz);
+		m_lambdas.resize(m_dimx * m_dimy * m_dimz);
+		m_deltaP.resize(m_dimx * m_dimy * m_dimz);
+		m_curl.resize(m_dimx * m_dimy * m_dimz);
+		m_viscosity.resize(m_dimx * m_dimy * m_dimz);
+
+		//Assign initial position, velocity and mass to all the vertices.
+		unsigned int i, k, j, index;
+		index = 0;
+		float d = 0.2f;
+		for(i = 0; i < m_dimx; ++i) {
+			for (j = 0; j < dim_y; ++j) {
+				for(k = 0; k < m_dimz; ++k) {
+					if (j % 2 == 0) d = -d;
+					m_vertices.pos(index) = glm::vec3(delta.x * i + cloth_min.x + d, delta.y * j + cloth_min.y + d, delta.z * k + cloth_min.z + d);
+					m_vertices.vel(index) = glm::vec3(0.0f);
+					m_vertices.set_inv_mass(index, 1.0f);
+					m_vertices.force(index) = GRAVITY;
+					m_neighbors[index] = std::vector<unsigned int>();
+					m_lambdas[index] = 0.0f;
+					m_colors[index] = particle_color;
+					m_deltaP[index] = glm::vec3(0.0f);
+					m_curl[index] = glm::vec3(0.0f);
+					m_normals[index] = glm::vec3(1,0,0);
+					m_viscosity[index] = 0.0f;
+					index++;
+				}
 			}
 		}
 	}
@@ -109,7 +140,7 @@ void ClothSim::update(const Scene* const scene, float dt)
 	if (apply_vorticity) compute_vorticity();
 	update_position();
 
-	if(begin_wall_move) {
+	if (begin_wall_move) {
 		wall_move_z += 0.1f;
 		if (wall_move_z > BOX_DIM.z) {
 			wall_move_z = 0.0f;

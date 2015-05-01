@@ -10,6 +10,7 @@
 #include "particlelist.h"
 #include "scene.h"
 #include <vector>
+#include "ObjLoader.h"
 
 class ClothSim
 {

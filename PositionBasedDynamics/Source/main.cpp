@@ -320,7 +320,7 @@ int main(int argc, char** argv)
     //ClothSim cloth_sim(1);
 
     // TODO: change here if you want to modify the dimension.
-    //cloth_sim.initialize(10, 10, 10, glm::vec3(-3.5f, 5.0f, -3.5f), glm::vec3(3.5f, 15.0f, 3.5f));
+    //cloth_sim.initialize(10, 15, 10, glm::vec3(-3.5f, 5.0f, -3.5f), glm::vec3(3.5f, 20.0f, 3.5f));
 	cloth_sim.initialize(5, 5, 5, glm::vec3(-1.5f, 0.5f, -1.5f), glm::vec3(1.5f, 5.0f, 1.5f));
 
     lastTime = glfwGetTime();
