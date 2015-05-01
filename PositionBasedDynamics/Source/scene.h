@@ -22,8 +22,10 @@ public:
 
     void load_from_file(const char* file_name);
     virtual void draw(const VBO& vbo);
+
 public:
     // TODO: add more primitives here.
+
     enum PrimitiveType {PLANE, SPHERE, BOX};
     class Primitive
     {

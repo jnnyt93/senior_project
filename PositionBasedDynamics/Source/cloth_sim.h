@@ -26,6 +26,7 @@ public:
     void draw(const VBO& vbos);
 
 	bool begin_wall_move;
+	glm::vec3 BOX_DIM;
 
 protected:
     struct Edge
@@ -98,7 +99,7 @@ private:
 	float RESTITUTION;
 	float m_radius;
 	float c; // parameter for XSPH viscosity
-	glm::vec3 BOX_DIM;
+	
 
 	bool apply_vorticity;
 	bool apply_viscosity;

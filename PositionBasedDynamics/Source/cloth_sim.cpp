@@ -33,20 +33,20 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 {// initialize the cloth here. feel free to create your own initialization.
 
 	// Apply the extensions
-	apply_vorticity = false;
-	apply_viscosity = false;
+	apply_vorticity = true;
+	apply_viscosity = true;
 	apply_tensile_instability = true;
 	bool load_obj = false;
 
 	// Constants
-	h = 2.0f;
+	h = 3.0f;
+	//h = 5.0f; // use h = 5.0 if you're loading obj
 	REST_DENSITY = 1000.0f;
 	RELAXATION = 0.01f;
 	RESTITUTION = 1.0f;
 	glm::vec3 GRAVITY(0.0f, -98.f, 0.0f);
-	m_radius = 1.0f;
+	m_radius = 1.5f;
 	c = 0.01;
-	BOX_DIM = glm::vec3(5,5,15);
 
 	wall_move_z = 0.0f;
 
@@ -79,7 +79,7 @@ void ClothSim::initialize(unsigned int dim_x, unsigned int dim_y, unsigned int d
 			m_vertices.pos(i) = loader.vertices_[i];
 			m_vertices.pos(i).y += 5.0f;
 			m_colors.push_back(particle_color);
-			m_normals.push_back(glm::vec3(1,0,0));
+			m_normals[i] = (glm::vec3(1,0,1));
 			m_vertices.vel(i) = glm::vec3(0.0f);
 			m_vertices.set_inv_mass(i, 1.0f);
 			m_vertices.force(i) = GRAVITY;

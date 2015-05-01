@@ -321,7 +321,12 @@ int main(int argc, char** argv)
 
     // TODO: change here if you want to modify the dimension.
     //cloth_sim.initialize(10, 15, 10, glm::vec3(-3.5f, 5.0f, -3.5f), glm::vec3(3.5f, 20.0f, 3.5f));
-	cloth_sim.initialize(5, 5, 5, glm::vec3(-1.5f, 0.5f, -1.5f), glm::vec3(1.5f, 5.0f, 1.5f));
+	//cloth_sim.initialize(2, 300, 2, glm::vec3(-1.0f, 5.0f, 13.0f), glm::vec3(1.0f, 300.0f, 14.0f));
+	//cloth_sim.initialize(5, 5, 5, glm::vec3(-1.5f, 0.5f, -1.5f), glm::vec3(1.5f, 5.0f, 1.5f));
+	cloth_sim.initialize(2, 30, 30, glm::vec3(-1.0f, 0.5f, -14.0f), glm::vec3(1.0f, 5.0f, 14.0f));
+
+	//cloth_sim.BOX_DIM = glm::vec3(5,5,5); // if changing here, also need to change in scene.cpp
+	cloth_sim.BOX_DIM = glm::vec3(2,5,15); // if changing here, also need to change in scene.cpp
 
     lastTime = glfwGetTime();
     while(run)
